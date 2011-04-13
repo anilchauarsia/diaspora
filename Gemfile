@@ -17,6 +17,8 @@ gem 'devise_invitable', '0.5.0'
 #Authentication
 gem 'omniauth', '0.1.6'
 gem 'twitter', :git => 'git://github.com/jnunemaker/twitter.git', :ref => 'ef122bbb280e229ed343'
+  #server
+gem 'rack-oauth2', '>= 0.4.5'
 
 #Views
 gem 'haml', '3.0.25'
