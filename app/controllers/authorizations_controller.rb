@@ -11,6 +11,7 @@ class AuthorizationsController < ApplicationController
     @time = Time.now.to_i
     @rand = SecureToken.generate
     respond *authorize_endpoint.call(request.env)
+
   end
 
   def create
@@ -26,15 +27,21 @@ class AuthorizationsController < ApplicationController
     if response.redirect?
       redirect_to header['Location']
     else
-      render :new
+      @challenge = "#{@sender_handle};#{@recepient_handle};#{@time.to_i};#{@rand}"
+      @client.update_attributes(:challenge => @challenge) if @client
+      render :new, :layout => false
     end
   end
 
   def authorize_endpoint(allow_approval = false)
     Rack::OAuth2::Server::Authorize.new do |req, res|
-      @client = Client.first || req.bad_request!
-      res.redirect_uri = @redirect_uri = req.verify_redirect_uri!(@client.redirect_uri)
-      if allow_approval
+      username = params[:sender_handle].split("@")[0]
+      contact = Contact.joins(:user).joins(:person).where(:users => {:username => username}, :people => {:diaspora_handle => params[:recepient_handle]}).first
+      @client = contact ? contact.server_token : nil
+
+      if @client && allow_approval
+        res.redirect_uri = @redirect_uri = req.verify_redirect_uri!(@client.redirect_uri)
+
         if params[:approve]
           case req.response_type
           when :code
