@@ -2,19 +2,23 @@ require 'spec_helper'
 
 describe AuthorizationsController do
   render_views
-  
+
+  before do
+    @client = Client.create!(:identifier => "abc", :contact => alice.contact_for(bob.person), :redirect_uri => "")
+    alice.contact_for(bob.person).update_attributes(:server_token => @client)
+
+    @sender_handle = alice.person.diaspora_handle
+    @recepient_handle = bob.person.diaspora_handle
+    @time = Time.now
+    @rand = "djfa98fha89fh"
+    Time.stub!(:now).and_return(@time)
+
+    @params_hash = { :response_type => :token} 
+  end
+
   describe '#new' do
     before do
-      @client = Client.create!(:identifier => "abc", :contact => alice.contact_for(bob.person), :redirect_uri => "")
-      alice.contact_for(bob.person).update_attributes(:server_token => @client)
-
-      @sender_handle = alice.person.diaspora_handle
-      @recepient_handle = bob.person.diaspora_handle
-      @time = Time.now
-      @rand = "djfa98fha89fh"
-      Time.stub!(:now).and_return(@time)
-      
-      @new_hash = { :client_id => "abc", :response_type => :token}
+      @new_hash = @params_hash
     end
     
     it 'succeeds' do
@@ -41,7 +45,14 @@ describe AuthorizationsController do
   end
 
   describe '#create' do
-      
+    before do
+      @challenge = "#{@sender_handle};#{@recepient_handle};#{@time.to_i};#{@rand}"
+    end
+
+    it 'succeeds' do
+      post :create, :challenge => @challenge
+      response.should be_success
+    end
   end
 
 end
