@@ -20,13 +20,15 @@ class AddOauthModels < ActiveRecord::Migration
       t.timestamps
     end
 
-    add_column :contacts, :server_token_id, :integer
-    add_column :contacts, :client_token_id, :integer
+    add_column :contacts, :client_id, :integer
+    add_column :contacts, :access_token_id, :integer
+    add_column :contacts, :refresh_token_id, :integer
   end
 
   def self.down
-    remove_column :contacts, :client_token_id
-    remove_column :contacts, :server_token_id
+    remove_column :contacts, :refresh_token_id
+    remove_column :contacts, :access_token_id
+    remove_column :contacts, :client_id
 
     drop_table :refresh_tokens
 

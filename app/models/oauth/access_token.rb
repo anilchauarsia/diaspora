@@ -1,4 +1,5 @@
 class AccessToken < ActiveRecord::Base
+
   require File.join(Rails.root, 'lib/oauth/oauth2_token')
 
   include Oauth2Token

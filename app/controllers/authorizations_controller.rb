@@ -11,7 +11,6 @@ class AuthorizationsController < ApplicationController
     @time = Time.now.to_i
     @rand = SecureToken.generate
     respond *authorize_endpoint.call(request.env)
-
   end
 
   def create
@@ -37,18 +36,18 @@ class AuthorizationsController < ApplicationController
     Rack::OAuth2::Server::Authorize.new do |req, res|
       username = params[:sender_handle].split("@")[0]
       contact = Contact.joins(:user).joins(:person).where(:users => {:username => username}, :people => {:diaspora_handle => params[:recepient_handle]}).first
-      @client = contact ? contact.server_token : nil
+      @client = contact ? contact.client : nil
 
       if @client && allow_approval
         res.redirect_uri = @redirect_uri = req.verify_redirect_uri!(@client.redirect_uri)
 
-        if params[:approve]
+        if verify_signature(@client, params[:code])
           case req.response_type
           when :code
-            authorization_code = current_account.authorization_codes.create(:client_id => @client, :redirect_uri => res.redirect_uri)
-            res.code = authorization_code.token
+            #authorization_code = current_account.authorization_codes.create(:client_id => @client, :redirect_uri => res.redirect_uri)
+            #res.code = authorization_code.token
           when :token
-            access_token = current_account.access_tokens.create(:client_id => @client)
+            access_token = @client.access_tokens.create(:client_id => @client)
             res.access_token = access_token.token
             res.token_type = :bearer
             res.expires_in = access_token.expires_in
@@ -61,5 +60,9 @@ class AuthorizationsController < ApplicationController
         @response_type = req.response_type
       end
     end
+  end
+
+  def verify_signature(client, signature)
+    client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), client.challenge)
   end
 end
