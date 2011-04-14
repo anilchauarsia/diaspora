@@ -65,10 +65,25 @@ class Request
     contact.sharing = true
     contact.save
 
+    receive_tokens
+
     self
   end
 
   private
+
+  def receive_tokens
+    challenge = [self.sender_handle, self.recipient_handle, Time.now.to_i].join(';')
+    self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge)
+
+    RestClient.post 'http://www.google.com/oauth2/token', {
+        :grant_type => :authorization_code,
+        :client_id => "aa",
+        :client_secret => "asdas",
+        :code => "dsfas",
+        :redirect_uri => "safsdfa"
+      }
+  end
 
   def not_already_connected
     if sender && recipient && Contact.where(:user_id => self.recipient.owner_id, :person_id => self.sender.id).count > 0

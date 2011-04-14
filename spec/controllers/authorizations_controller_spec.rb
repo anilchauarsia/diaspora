@@ -13,11 +13,13 @@ describe AuthorizationsController do
     @rand = "djfa98fha89fh"
     Time.stub!(:now).and_return(@time)
 
-    @params_hash = {:client_id => "abc", :response_type => :token, :sender_handle => @sender_handle, :recepient_handle => @recepient_handle, :redirect_uri => "http://localhost/"}
+    @params_hash = {:format => :json, :client_id => "abc", :grant_type => :client_credentials, :response_type => :token, 
+      :sender_handle => @sender_handle, :recepient_handle => @recepient_handle, :redirect_uri => "http://localhost/"}
   end
 
   describe '#new' do
     before do
+      pending
       @new_hash = @params_hash
     end
     
@@ -45,23 +47,50 @@ describe AuthorizationsController do
 
   describe '#create' do
     before do
-      @challenge = "#{@sender_handle};#{@recepient_handle};#{@time.to_i};#{@rand}"
-      st = alice.contact_for(bob.person).client
-      st.challenge = @challenge
-      st.save!
+      @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
+      #st = alice.contact_for(bob.person).client
+      #st.challenge = @challenge
+      #st.save!
       @code = "signature"
     end
 
     it 'fails with an invalid signature' do
-      post :create, @params_hash.merge(:code => @code)
+      post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
       response.body.should include("access_denied")
     end
 
-    it 'creates a token with a correct signature' do
-      @code = Base64.encode64(
-        bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
-      post :create, @params_hash.merge(:code => @code)
-      response.body.should_not include("access_denied")
+    context "with valid signature" do
+      it 'fails if the timestamp is more than 5 mins ago ' do
+        @time = (@time-6.minutes)
+        @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
+        @code = Base64.encode64(
+          bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+
+        post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
+        response.code.should == "401"
+        response.body.strip!.should == <<JSON.strip!
+        {
+          "error":"invalid_request"
+        }
+JSON
+      end
+
+      it 'creates a token with a correct signature' do
+        @code = Base64.encode64(
+          bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+
+        post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
+        response.body.strip!.should == <<JSON.strip!
+        {
+         "access_token":"SlAV32hkKG",
+         "token_type":"example",
+         "expires_in":3600,
+         "refresh_token":"8xLOxBtZp8",
+         "example_parameter":"example_value"
+        } 
+JSON
+
+      end
     end
   end
 end

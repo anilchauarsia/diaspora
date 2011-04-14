@@ -67,7 +67,7 @@ describe Request do
 
   describe '#receive' do
     it 'creates a contact' do
-      request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
+     request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
       lambda{
         request.receive(eve, alice.person)
       }.should change{
@@ -84,7 +84,57 @@ describe Request do
       }.should change {
         alice.contacts.find_by_person_id(eve.person.id).mutual?
       }.from(false).to(true)
+    end
 
+    it 'calls receive_tokens' do
+     request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
+
+     request.should_receive(:receive_tokens)
+     request.receive(eve, alice.person)
+    end
+  end
+
+  describe '#receive_tokens' do
+    # Server A issues a share request to Server B
+    # Server B requests an authorization token for Server A for GET access
+
+    before do
+      RestClient.unstub!(:post)
+    end
+
+    after do
+      RestClient.stub!(:post).and_return(FakeHttpRequest.new(:success))
+    end
+
+    it 'asks for authorization' do
+      pending "panda"
+    end
+
+    it 'verifies authenticity of challenge' do
+      pending "panda"
+    end
+
+    it 'signs a challenge' do
+      request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
+      time = Time.now
+      Time.stub!(:now).and_return(time)
+      request.stub!(:recipient).and_return(eve.person)
+      eve.person.stub!(:owner).and_return(eve)
+      
+      key = eve.encryption_key
+      eve.stub!(:encryption_key).and_return(key)
+
+      challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, time.to_i].join(";")
+      key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, challenge)
+      request.send(:receive_tokens)
+    end
+
+    it 'POSTS a signed challenge' do
+
+    end
+
+    it 'stores authorization and refresh tokens' do
+      pending "this might go in the controller, depending on redirection logic"
     end
 
     it 'sets sharing' do

@@ -63,6 +63,7 @@ class AuthorizationsController < ApplicationController
   end
 
   def verify_signature(client, signature)
-    client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), client.challenge)
+    challenge = [ params[:sender_handle], params[:recepient_handle], params[:time]].join(";")
+    client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && params[:time] > (Time.now - 5.minutes).to_i
   end
 end
