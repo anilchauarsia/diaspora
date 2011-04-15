@@ -118,7 +118,6 @@ Diaspora::Application.routes.draw do
   end
 
   #Oauth - adapted from https://github.com/nov/rack-oauth2-sample/ 
-
   resources :authorizations, :only => :create
   match 'oauth2/authorize', :to => 'authorizations#new'
   post 'oauth2/token', :to => 'authorizations#token' #proc { |env| token_endpoint.call(env) }

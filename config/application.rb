@@ -51,12 +51,5 @@ module Diaspora
     config.filter_parameters += [:message]
     config.filter_parameters += [:text]
     config.filter_parameters += [:bio]
-
-    # OAuth2 Resource Server
-    require 'rack/oauth2'
-    config.middleware.use Rack::OAuth2::Server::Resource::Bearer do |req|
-      AccessToken.valid.find_by_token(req.access_token) || req.invalid_token!
-    end
-
   end
 end
