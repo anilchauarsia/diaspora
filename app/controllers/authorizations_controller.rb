@@ -1,5 +1,6 @@
 class AuthorizationsController < ApplicationController
 
+=begin
   rescue_from Rack::OAuth2::Server::Authorize::BadRequest do |e|
     @error = e
     render :nothing => true, :status => e.status
@@ -31,10 +32,6 @@ class AuthorizationsController < ApplicationController
     ).token if with_refresh_token
     response.token_type = access_token.token_type
     response.expires_in = access_token.expires_in
-
-    [:access_token, :refresh_token, :token_type, :expires_in].each do |attr|
-      @json[attr] = response.send(attr)
-    end
   end
 
   def token_endpoint
@@ -71,6 +68,7 @@ class AuthorizationsController < ApplicationController
     challenge = [ params[:sender_handle], params[:recepient_handle], params[:time]].join(";")
     client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && params[:time] > (Time.now - 5.minutes).to_i
   end
+
 
   private
 
@@ -116,4 +114,6 @@ class AuthorizationsController < ApplicationController
       end
     end
   end
+
+=end
 end

@@ -39,4 +39,8 @@ class FakeHttpRequest
   def errback(&b)
     b.call if @callback == :failure
   end
+
+  def to_str
+    ''
+  end
 end

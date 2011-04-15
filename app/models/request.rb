@@ -82,7 +82,6 @@ class Request
     )
 
     save_tokens(client.access_token!, contact)
-
   end
 
   def save_tokens(response, contact)

@@ -102,8 +102,8 @@ describe Request do
   describe '#receive_tokens' do
     # Server A issues a share request to Server B
     # Server B requests an authorization token for Server A for GET access
-
     before do
+      Request.any_instance.unstub(:receive_tokens)
       RestClient.unstub!(:post)
       host = URI.parse(alice.person.url).host
 
@@ -114,7 +114,7 @@ describe Request do
          :example_parameter => "example_value"
       }
 
-     stub_request(:post, "https://#{host}/oauth2/token").
+      stub_request(:post, "https://#{host}/oauth2/token").
       with(:body => {
               :client_id => 'alice@example.org;eve@example.org',
               :client_secret => 'sig',
@@ -151,7 +151,8 @@ describe Request do
       @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge)
       Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
 
-      @request.stub!(:save_tokens)
+
+      @request.stub(:save_tokens)
 
       @request.receive(eve, alice.person)
     end
