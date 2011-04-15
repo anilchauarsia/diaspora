@@ -109,7 +109,7 @@ describe Contact do
       end
 
       it 'returns no duplicate contacts' do
-        [@alice, @eve].each {|c| @bob.add_contact_to_aspect(@bob.contact_for(c.person), @bob.aspects.last)}
+
         contact_ids = @contact.contacts.map{|p| p.id}
         contact_ids.uniq.should == contact_ids
       end
@@ -146,12 +146,27 @@ describe Contact do
     end
 
     describe '#dispatch_request' do
-      it 'pushes to people' do
+      before do
         @contact.stub(:user).and_return(@user)
-        m = mock()
-        m.should_receive(:post)
-        Postzord::Dispatch.should_receive(:new).and_return(m)
+        @m = mock()
+        @m.should_receive(:post)
+      end
+      
+      it 'pushes to people' do
+        Postzord::Dispatch.should_receive(:new).and_return(@m)
         @contact.dispatch_request
+      end
+
+      context 'oauth2' do
+        it 'creates a client' do
+          Postzord::Dispatch.stub(:new).and_return(@m)
+          
+          lambda{
+            @contact.dispatch_request
+          }.should change{
+            Client.count
+          }.by(1)
+        end
       end
     end
   end

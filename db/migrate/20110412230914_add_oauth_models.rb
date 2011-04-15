@@ -9,7 +9,7 @@ class AddOauthModels < ActiveRecord::Migration
 
     create_table :clients do |t|
       t.belongs_to :contact
-      t.string :identifier, :secret, :redirect_uri, :challenge
+      t.string :identifier, :secret, :redirect_uri
       t.timestamps
     end
 

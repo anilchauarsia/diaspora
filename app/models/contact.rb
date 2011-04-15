@@ -33,6 +33,11 @@ class Contact < ActiveRecord::Base
 
   def dispatch_request
     request = self.generate_request
+
+    # to create oauth token, we must save the unpersisted contact
+    self.save
+    self.create_client
+
     Postzord::Dispatch.new(self.user, request).post
     request
   end

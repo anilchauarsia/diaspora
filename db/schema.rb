@@ -65,7 +65,6 @@ ActiveRecord::Schema.define(:version => 20110518222303) do
     t.string   "identifier"
     t.string   "secret"
     t.string   "redirect_uri"
-    t.string   "challenge"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
