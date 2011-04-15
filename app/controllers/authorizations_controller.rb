@@ -17,6 +17,61 @@ class AuthorizationsController < ApplicationController
     respond *authorize_endpoint(:allow_approval).call(request.env)
   end
 
+  def token
+    @json = {}
+    token_endpoint.call(request.env)
+    pp response.code
+  end
+    
+  def setup_response(response, access_token, with_refresh_token = false)
+    response.access_token = access_token.token
+    response.refresh_token = access_token.create_refresh_token(
+      :contact => access_token.contact,
+      :client => access_token.client
+    ).token if with_refresh_token
+    response.token_type = access_token.token_type
+    response.expires_in = access_token.expires_in
+
+    [:access_token, :refresh_token, :token_type, :expires_in].each do |attr|
+      @json[attr] = response.send(attr)
+    end
+  end
+
+  def token_endpoint
+    Rack::OAuth2::Server::Token.new do |req, res|
+      username = params[:sender_handle].split("@")[0]
+      contact = Contact.joins(:user).joins(:person).where(:users => {:username => username}, :people => {:diaspora_handle => params[:recepient_handle]}).first
+      client = contact ? contact.client : nil 
+      req.invalid_grant! unless client
+
+      verify_signature(client, params[:client_secret]) || req.invalid_grant!
+      case req.grant_type
+      when :authorization_code
+        code = AuthorizationCode.valid.find_by_token(req.code)
+        req.invalid_grant! if code.blank? || code.redirect_uri != req.redirect_uri
+        setup_response res, code.access_token, :with_refresh_token
+      when :password
+        # NOTE: password is not hashed in this sample app. Don't do the same on your app.
+        account = Account.find_by_username_and_password(req.username, req.password) || req.invalid_grant!
+        setup_response res, account.access_tokens.create(:client => client), :with_refresh_token
+      when :client_credentials
+        # NOTE: client is already authenticated here.
+        setup_response res, client.access_tokens.create, :with_refresh_token
+      when :refresh_token
+        refresh_token = client.refresh_tokens.valid.find_by_token(req.refresh_token)
+        setup_response res, refresh_token.access_tokens.create
+      else
+        # NOTE: extended assertion grant_types are not supported yet.
+        req.unsupported_grant_type!
+      end
+    end
+  end
+
+  def verify_signature(client, signature)
+    challenge = [ params[:sender_handle], params[:recepient_handle], params[:time]].join(";")
+    client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && params[:time] > (Time.now - 5.minutes).to_i
+  end
+
   private
 
   def respond(status, header, response)
@@ -60,10 +115,5 @@ class AuthorizationsController < ApplicationController
         @response_type = req.response_type
       end
     end
-  end
-
-  def verify_signature(client, signature)
-    challenge = [ params[:sender_handle], params[:recepient_handle], params[:time]].join(";")
-    client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && params[:time] > (Time.now - 5.minutes).to_i
   end
 end

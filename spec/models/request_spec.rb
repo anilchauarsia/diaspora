@@ -66,8 +66,13 @@ describe Request do
   end
 
   describe '#receive' do
+    before do
+      Request.any_instance.stub(:receive_tokens)
+    end
+
     it 'creates a contact' do
      request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
+
       lambda{
         request.receive(eve, alice.person)
       }.should change{
@@ -100,6 +105,34 @@ describe Request do
 
     before do
       RestClient.unstub!(:post)
+      host = URI.parse(alice.person.url).host
+
+      @json = {
+         :access_token => "SlAV32hkKG",
+         :token_type => "example",
+         :refresh_token => "8xLOxBtZp8",
+         :example_parameter => "example_value"
+      }
+
+     stub_request(:post, "https://#{host}/oauth2/token").
+      with(:body => {
+              :client_id => 'alice@example.org;eve@example.org',
+              :client_secret => 'sig',
+              :grant_type => 'client_credentials'
+            }, 
+           :headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate', 'Content-Length'=>'97', 'Content-Type'=>'application/x-www-form-urlencoded'}).
+      to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
+
+      @request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
+      @time = Time.now
+      Time.stub!(:now).and_return(@time)
+      @request.stub!(:recipient).and_return(eve.person)
+      eve.person.stub!(:owner).and_return(eve)
+      
+      @key = eve.encryption_key
+      eve.stub!(:encryption_key).and_return(@key)
+
+      @challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, @time.to_i].join(";")
     end
 
     after do
@@ -115,26 +148,29 @@ describe Request do
     end
 
     it 'signs a challenge' do
-      request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
-      time = Time.now
-      Time.stub!(:now).and_return(time)
-      request.stub!(:recipient).and_return(eve.person)
-      eve.person.stub!(:owner).and_return(eve)
-      
-      key = eve.encryption_key
-      eve.stub!(:encryption_key).and_return(key)
+      @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge)
+      Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
 
-      challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, time.to_i].join(";")
-      key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, challenge)
-      request.send(:receive_tokens)
+      @request.stub!(:save_tokens)
+
+      @request.receive(eve, alice.person)
     end
 
     it 'POSTS a signed challenge' do
+      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
 
+      @request.receive(eve, alice.person)
     end
 
     it 'stores authorization and refresh tokens' do
-      pending "this might go in the controller, depending on redirection logic"
+      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+
+      @request.receive(eve, alice.person)
+      
+      eve.contact_for(alice.person).access_token.token.should == @json[:access_token]
+      eve.contact_for(alice.person).access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
+      eve.contact_for(alice.person).refresh_token.token.should == @json[:refresh_token]
+      eve.contact_for(alice.person).refresh_token.expires_at.to_i.should == (@time + 1.month).to_i
     end
 
     it 'sets sharing' do

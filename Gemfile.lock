@@ -50,6 +50,12 @@ GIT
       multi_xml (~> 0.2.0)
       simple_oauth (~> 0.1.2)
 
+GIT
+  remote: https://github.com/rspec/rspec-mocks.git
+  revision: 1b59f2fcfc854e64b6c0925e5806f35f97b796f2
+  ref: 1b59f2fcfc854e64b6c0
+  specs:
+
 PATH
   remote: vendor/gems/jasmine
   specs:
@@ -353,10 +359,6 @@ GEM
     rspec-instafail (0.1.7)
     rspec-mocks (2.6.0)
     rspec-rails (2.6.0)
-      actionpack (~> 3.0)
-      activesupport (~> 3.0)
-      railties (~> 3.0)
-      rspec (~> 2.6.0)
     ruby-debug (0.10.4)
       columnize (>= 0.1)
       ruby-debug-base (~> 0.10.4.0)
@@ -456,6 +458,7 @@ DEPENDENCIES
   roxml!
   rspec (>= 2.0.0)
   rspec-instafail (>= 0.1.7)
+  rspec-mocks!
   rspec-rails (>= 2.0.0)
   ruby-debug
   selenium-webdriver (= 0.1.3)

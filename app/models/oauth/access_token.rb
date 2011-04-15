@@ -11,7 +11,7 @@ class AccessToken < ActiveRecord::Base
   def setup
     super
     if refresh_token
-      self.account = refresh_token.account
+      self.contact = refresh_token.contact
       self.client = refresh_token.client
       self.expires_at = [self.expires_at, refresh_token.expires_at].min
     end

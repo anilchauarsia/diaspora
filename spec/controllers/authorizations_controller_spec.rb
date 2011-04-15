@@ -14,7 +14,7 @@ describe AuthorizationsController do
     Time.stub!(:now).and_return(@time)
 
     @params_hash = {:format => :json, :client_id => "abc", :grant_type => :client_credentials, :response_type => :token, 
-      :sender_handle => @sender_handle, :recepient_handle => @recepient_handle, :redirect_uri => "http://localhost/"}
+      :sender_handle => @sender_handle, :recepient_handle => @recepient_handle}
   end
 
   describe '#new' do
@@ -45,51 +45,85 @@ describe AuthorizationsController do
     end
   end
 
-  describe '#create' do
+  describe '#token' do
     before do
       @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
-      #st = alice.contact_for(bob.person).client
-      #st.challenge = @challenge
-      #st.save!
       @code = "signature"
     end
 
     it 'fails with an invalid signature' do
-      post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
-      response.body.should include("access_denied")
+      post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+      response.code.should == "401"
+      response.body.strip!.should == '{"error":"invalid_request"}'
     end
 
     context "with valid signature" do
-      it 'fails if the timestamp is more than 5 mins ago ' do
-        @time = (@time-6.minutes)
-        @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
-        @code = Base64.encode64(
-          bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+      context 'wrong time' do
+        before do
+          @time = (@time-6.minutes)
+          @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
+          @code = Base64.encode64(
+            bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+        end
 
-        post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
-        response.code.should == "401"
-        response.body.strip!.should == <<JSON.strip!
-        {
-          "error":"invalid_request"
-        }
-JSON
+        it 'fails if the timestamp is more than 5 mins ago ' do
+          post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          response.code.should == "401"
+          response.body.strip!.should == '{"error":"invalid_request"}'
+        end
+
+        it 'does not token a refresh token' do
+          lambda{
+            post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          }.should_not change{
+            RefreshToken.count
+          }
+        end
+
+        it 'does not token an access token' do
+
+          lambda{
+            post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          }.should_not change{
+            AccessToken.count
+          }
+        end
       end
 
-      it 'creates a token with a correct signature' do
-        @code = Base64.encode64(
-          bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+      context 'valid time' do
+        before do
+          @code = Base64.encode64(
+            bob.encryption_key.sign OpenSSL::Digest::SHA256.new, @challenge )
+          AccessToken.any_instance.stub(:token).and_return('xxx')
+          RefreshToken.any_instance.stub(:token).and_return('zzz')
+        end
 
-        post :create, @params_hash.merge(:time => @time.to_i, :code => @code)
-        response.body.strip!.should == <<JSON.strip!
-        {
-         "access_token":"SlAV32hkKG",
-         "token_type":"example",
-         "expires_in":3600,
-         "refresh_token":"8xLOxBtZp8",
-         "example_parameter":"example_value"
-        } 
-JSON
+        it 'responds with a token for a correct signature' do
+          json = '{ "access_token":"xxx",
+                   "token_type":"bearer",
+                   "expires_in":900,
+                   "refresh_token":"zzz"
+                  }' 
 
+          post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          JSON.parse(response.body).should == JSON.parse(json)
+        end
+
+        it 'tokens a refresh token' do
+          lambda{
+            post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          }.should change{
+            RefreshToken.count
+          }.by(1)
+        end
+
+        it 'tokens an access token' do
+          lambda{
+            post :token, @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+          }.should change{
+            AccessToken.count
+          }.by(1)
+        end
       end
     end
   end

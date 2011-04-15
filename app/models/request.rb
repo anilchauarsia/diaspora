@@ -65,25 +65,33 @@ class Request
     contact.sharing = true
     contact.save
 
-    receive_tokens
+    receive_tokens(contact)
 
     self
   end
 
-  private
-
-  def receive_tokens
+  def receive_tokens(contact)
     challenge = [self.sender_handle, self.recipient_handle, Time.now.to_i].join(';')
-    self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge)
+    sig = self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge)
 
-    RestClient.post 'http://www.google.com/oauth2/token', {
-        :grant_type => :authorization_code,
-        :client_id => "aa",
-        :client_secret => "asdas",
-        :code => "dsfas",
-        :redirect_uri => "safsdfa"
-      }
+    client = Rack::OAuth2::Client.new(
+      :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
+      :secret => sig,
+      #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
+      :host => URI.parse(sender.url).host
+    )
+
+    save_tokens(client.access_token!, contact)
+
   end
+
+  def save_tokens(response, contact)
+    response = JSON.parse(response.to_json.to_s)
+    refresh_token = RefreshToken.create!(:token => response['refresh_token'], :contact => contact)
+    AccessToken.create!(:token => response['access_token'], :refresh_token => refresh_token, :contact => contact)
+  end
+
+  private
 
   def not_already_connected
     if sender && recipient && Contact.where(:user_id => self.recipient.owner_id, :person_id => self.sender.id).count > 0

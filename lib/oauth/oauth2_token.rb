@@ -8,8 +8,16 @@ module Oauth2Token
       belongs_to :client
 
       before_validation :setup, :on => :create
-      validates :client, :expires_at, :presence => true
       validates :token, :presence => true, :uniqueness => true
+      
+      validate do
+        if !client_id && !contact_id
+          errors[:base] << "Oauth2Token requires either a client id or a contact id"
+          false
+        else
+          true
+        end
+      end
 
       scope :valid, lambda {
         where(:expires_at.gte => Time.now.utc)
@@ -29,7 +37,9 @@ module Oauth2Token
   private
 
   def setup
-    self.token = SecureToken.generate
+    if client_id
+      self.token = SecureToken.generate
+    end
     self.expires_at ||= self.default_lifetime.from_now
   end
 end
