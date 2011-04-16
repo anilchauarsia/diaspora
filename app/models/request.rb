@@ -71,7 +71,8 @@ class Request
   end
 
   def receive_tokens(contact)
-    challenge = [self.sender_handle, self.recipient_handle, Time.now.to_i].join(';')
+    time = Time.now
+    challenge = [self.sender_handle, self.recipient_handle, time.to_i].join(';')
     sig = self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge)
 
     client = Rack::OAuth2::Client.new(
@@ -80,6 +81,7 @@ class Request
       #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
       :host => URI.parse(sender.url).host,
       :port => URI.parse(sender.url).port.to_s
+      :time => time.to_i.to_s
     )
 
     save_tokens(client.access_token!, contact)

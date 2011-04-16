@@ -16,7 +16,7 @@ def setup_response(response, access_token, with_refresh_token = false)
 end
 
 token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
-  split = req[:identifier].split(";")
+  split = req.client_id.split(";")
   sender_handle = split[0]
   username = sender_handle.split('@')[0]
   recepient_handle = split[1]
@@ -24,7 +24,7 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
   client = contact ? contact.client : nil 
   error(req, :invalid_client!) unless client
 
-  verify_signature(client, req[:client_secret], req) || error(req, :invalid_client!)
+  verify_signature(client, req.client_secret, sender_handle, recepient_handle, req) || error(req, :invalid_client!)
   case req.grant_type
   when :authorization_code
     code = AuthorizationCode.valid.find_by_token(req.code)
@@ -46,7 +46,7 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
   end
 end
 
-def verify_signature(client, signature, sender_handle, recepient_handle)
+def verify_signature(client, signature, sender_handle, recepient_handle, req)
   challenge = [ sender_handle, recepient_handle, req[:time]].join(";")
   client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && req[:time].to_i > (Time.now - 5.minutes).to_i
 end
