@@ -8,7 +8,6 @@ class AddOauthModels < ActiveRecord::Migration
     end
 
     create_table :clients do |t|
-      t.belongs_to :contact
       t.string :identifier, :secret, :redirect_uri
       t.timestamps
     end
@@ -21,13 +20,9 @@ class AddOauthModels < ActiveRecord::Migration
     end
 
     add_column :contacts, :client_id, :integer
-    add_column :contacts, :access_token_id, :integer
-    add_column :contacts, :refresh_token_id, :integer
   end
 
   def self.down
-    remove_column :contacts, :refresh_token_id
-    remove_column :contacts, :access_token_id
     remove_column :contacts, :client_id
 
     drop_table :refresh_tokens

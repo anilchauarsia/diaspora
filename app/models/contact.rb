@@ -9,9 +9,9 @@ class Contact < ActiveRecord::Base
   belongs_to :person
   validates_presence_of :person
 
-  has_one :client
-  has_one :access_token
-  has_one :refresh_token
+  belongs_to :client
+  has_one :access_token, :foreign_key => :contact_id
+  has_one :refresh_token, :foreign_key => :contact_id
 
   has_many :aspect_memberships
   has_many :aspects, :through => :aspect_memberships
@@ -36,7 +36,7 @@ class Contact < ActiveRecord::Base
 
     # to create oauth token, we must save the unpersisted contact
     self.save
-    self.create_client
+    Client.create!(:contact => self)
 
     Postzord::Dispatch.new(self.user, request).post
     request
