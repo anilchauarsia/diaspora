@@ -105,7 +105,7 @@ describe Request do
     before do
       Request.any_instance.unstub(:receive_tokens)
       RestClient.unstub!(:post)
-      host = URI.parse(alice.person.url).host
+      client_url = "#{URI.parse(alice.person.url).host}:#{URI.parse(alice.person.url).port.to_s}"
 
       @json = {
          :access_token => "SlAV32hkKG",
@@ -114,7 +114,7 @@ describe Request do
          :example_parameter => "example_value"
       }
 
-      stub_request(:post, "https://#{host}/oauth2/token").
+      stub_request(:post, "https://#{client_url}/oauth2/token").
       with(:body => {
               :client_id => 'alice@example.org;eve@example.org',
               :client_secret => 'sig',
