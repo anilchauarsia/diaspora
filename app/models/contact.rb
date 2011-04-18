@@ -9,9 +9,9 @@ class Contact < ActiveRecord::Base
   belongs_to :person
   validates_presence_of :person
 
-  belongs_to :client
-  belongs_to :access_token
-  belongs_to :refresh_token
+  has_one :client
+  has_one :access_token
+  has_one :refresh_token
 
   has_many :aspect_memberships
   has_many :aspects, :through => :aspect_memberships

@@ -102,8 +102,11 @@ describe Request do
   describe '#receive_tokens' do
     # Server A issues a share request to Server B
     # Server B requests an authorization token for Server A for GET access
+
+    # Request#receive_tokens is an alias_method as defined in
+    #  spec/support/receive_tokens_stub.rb
+
     before do
-      Request.any_instance.unstub(:receive_tokens)
       RestClient.unstub!(:post)
       client_url = "#{URI.parse(alice.person.url).host}:#{URI.parse(alice.person.url).port.to_s}"
 
@@ -133,41 +136,35 @@ describe Request do
       eve.stub!(:encryption_key).and_return(@key)
 
       @challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, @time.to_i].join(";")
+
+      @contact = eve.contacts.create(:person => alice.person)
     end
 
     after do
       RestClient.stub!(:post).and_return(FakeHttpRequest.new(:success))
     end
 
-    it 'asks for authorization' do
-      pending "panda"
-    end
-
-    it 'verifies authenticity of challenge' do
-      pending "panda"
-    end
-
     it 'signs a challenge' do
       @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge)
       Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
-
-
       @request.stub(:save_tokens)
 
-      @request.receive(eve, alice.person)
+      @request.receive_tokens_original(@contact)
     end
 
     it 'POSTS a signed challenge' do
       @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
 
-      @request.receive(eve, alice.person)
+      @request.receive_tokens_original(@contact)
     end
 
     it 'stores authorization and refresh tokens' do
       @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
 
-      @request.receive(eve, alice.person)
+      @request.receive_tokens_original(@contact)
       
+      pp eve.contact_for(alice.person).reload.access_token
+
       eve.contact_for(alice.person).access_token.token.should == @json[:access_token]
       eve.contact_for(alice.person).access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
       eve.contact_for(alice.person).refresh_token.token.should == @json[:refresh_token]

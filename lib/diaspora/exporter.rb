@@ -30,7 +30,7 @@ module Diaspora
                 xml.aspect {
                   xml.name aspect.name
 
-#                  xml.person_ids {
+                  #xml.person_ids {
                     #aspect.person_ids.each do |id|
                       #xml.person_id id
                     #end

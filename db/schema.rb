@@ -61,6 +61,7 @@ ActiveRecord::Schema.define(:version => 20110518222303) do
   add_index "aspects", ["user_id"], :name => "index_aspects_on_user_id"
 
   create_table "clients", :force => true do |t|
+    t.integer  "contact_id"
     t.string   "identifier"
     t.string   "secret"
     t.string   "redirect_uri"
@@ -94,7 +95,6 @@ ActiveRecord::Schema.define(:version => 20110518222303) do
     t.string   "mongo_id"
     t.boolean  "sharing",    :default => false, :null => false
     t.boolean  "receiving",  :default => false, :null => false
-    t.integer  "client_id"
   end
 
   add_index "contacts", ["mongo_id"], :name => "index_contacts_on_mongo_id"

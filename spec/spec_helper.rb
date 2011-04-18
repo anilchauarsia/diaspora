@@ -33,7 +33,7 @@ RSpec.configure do |config|
   config.before(:each) do
     I18n.locale = :en
     RestClient.stub!(:post).and_return(FakeHttpRequest.new(:success))
-    Request.any_instance.stub(:receive_tokens).and_return(true)
+    #Request.any_instance.stub(:receive_tokens).and_return(true)
 
     $process_queue = false
   end

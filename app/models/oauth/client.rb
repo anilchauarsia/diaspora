@@ -3,7 +3,7 @@ class Client < ActiveRecord::Base
 
   has_many :access_tokens
   has_many :refresh_tokens
-  has_one :contact
+  belongs_to :contact
 
   before_validation :setup, :on => :create
   validates :contact, :presence => true

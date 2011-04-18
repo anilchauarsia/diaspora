@@ -12,10 +12,11 @@ describe 'Token Endpoint' do
     @rand = "djfa98fha89fh"
     Time.stub!(:now).and_return(@time)
 
-    @params_hash = {:format => :json, :client_id => "abc", :grant_type => :client_credentials, :response_type => :token, 
+    client_id = [@sender_handle,@recepient_handle].join(";")
+    @params_hash = {:format => :json, :client_id => client_id, :grant_type => :client_credentials, :response_type => :token, 
       :sender_handle => @sender_handle, :recepient_handle => @recepient_handle}
 
-    @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
+    @challenge = "#{client_id};#{@time.to_i}"
     @code = "signature"
   end
 
