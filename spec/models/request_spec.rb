@@ -117,18 +117,12 @@ describe Request do
          :example_parameter => "example_value"
       }
 
-      stub_request(:post, "https://#{client_url}/oauth2/token").
-      with(:body => {
-              :client_id => 'alice@example.org;eve@example.org',
-              :client_secret => 'sig',
-              :grant_type => 'client_credentials'
-            }, 
-           :headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate', 'Content-Length'=>'97', 'Content-Type'=>'application/x-www-form-urlencoded'}).
-      to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
-
-      @request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
       @time = Time.now
       Time.stub!(:now).and_return(@time)
+
+      stub_request(:post, "https://#{client_url}/oauth2/token").to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
+
+      @request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
       @request.stub!(:recipient).and_return(eve.person)
       eve.person.stub!(:owner).and_return(eve)
       
