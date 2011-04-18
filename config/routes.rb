@@ -46,9 +46,12 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
   end
 end
 
-def verify_signature(client, signature, sender_handle, recepient_handle, req)
-  challenge = [ sender_handle, recepient_handle, req[:time]].join(";")
-  client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge) && req[:time].to_i > (Time.now - 5.minutes).to_i
+def verify_signature(client, secret, sender_handle, recepient_handle, req)
+  split = Base64.decode64(secret).split(';')
+  time = split[0]
+  signature = split[1]
+  challenge = [ sender_handle, recepient_handle, time].join(";")
+  client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, signature, challenge) && time.to_i > (Time.now - 5.minutes).to_i
 end
 
 def error(req, error)
