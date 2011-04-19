@@ -79,7 +79,7 @@ class Request
 
     client = Rack::OAuth2::Client.new(
       :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
-      :secret => Base64.encode64("#{time.to_i};#{sig}"),
+      :secret => Base64.encode64("#{time.to_i};#{nonce};#{sig}"),
       #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
       :host => URI.parse(sender.url).host,
       :port => URI.parse(sender.url).port.to_s,
