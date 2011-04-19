@@ -24,7 +24,14 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
   client = contact ? contact.client : nil 
   error(req, :invalid_client!) unless client
 
-  verify_signature(client, req.client_secret, sender_handle, recepient_handle, req) || error(req, :invalid_client!)
+  split = Base64.decode64(req.client_secret).split(';')
+  time = split[0]
+  nonce = split[1]
+  signature = split[2]
+  challenge = [sender_handle, recepient_handle, time, nonce].join(";")
+
+  (valid_time?(time) && valid_nonce?(client, nonce) && verify_signature(client, challenge, signature)) || error(req, :invalid_client!)
+
   case req.grant_type
   when :authorization_code
     code = AuthorizationCode.valid.find_by_token(req.code)
@@ -36,7 +43,7 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
     setup_response res, account.access_tokens.create(:client => client), :with_refresh_token
   when :client_credentials
     # NOTE: client is already authenticated here.
-    setup_response res, client.access_tokens.create, :with_refresh_token
+    setup_response res, client.access_tokens.create(:nonce => nonce), :with_refresh_token
   when :refresh_token
     refresh_token = client.refresh_tokens.valid.find_by_token(req.refresh_token)
     setup_response res, refresh_token.access_tokens.create
@@ -46,12 +53,16 @@ token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
   end
 end
 
-def verify_signature(client, secret, sender_handle, recepient_handle, req)
-  split = Base64.decode64(secret).split(';')
-  time = split[0]
-  signature = split[1]
-  challenge = [ sender_handle, recepient_handle, time].join(";")
-  client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature),  challenge) && time.to_i > (Time.now - 5.minutes).to_i
+def verify_signature(client, challenge, signature)
+  client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge)
+end
+
+def valid_time?(time)
+  time.to_i > (Time.now - 5.minutes).to_i
+end
+
+def valid_nonce?(client, nonce)
+  client.access_tokens.where(:nonce => nonce).first.nil? 
 end
 
 def error(req, error)

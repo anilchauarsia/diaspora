@@ -16,8 +16,8 @@ describe 'Token Endpoint' do
     @params_hash = {:format => :json, :client_id => client_id, :grant_type => :client_credentials, :response_type => :token, 
       :sender_handle => @sender_handle, :recepient_handle => @recepient_handle}
 
-    @challenge = "#{client_id};#{@time.to_i}"
-    @code = Base64.encode64("#{@time.to_i};signature")
+    @challenge = [@sender_handle,@recepient_handle, @time.to_i, @rand].join(";")
+    @code = Base64.encode64( [@time.to_i, @rand, Base64.encode64('signature')].join(';'))
   end
 
   it 'fails with an invalid signature' do
@@ -30,9 +30,12 @@ describe 'Token Endpoint' do
     context 'wrong time' do
       before do
         @time = (@time-6.minutes)
-        @challenge = [@sender_handle,@recepient_handle,@time.to_i].join(";")
+        @challenge = [@sender_handle,@recepient_handle, @time.to_i, @rand].join(";")
         @code = Base64.encode64( 
-              [@time.to_i, bob.encryption_key.sign(OpenSSL::Digest::SHA256.new, @challenge)].join(';'))
+              [@time.to_i, 
+               @rand,
+               Base64.encode64(bob.encryption_key.sign(OpenSSL::Digest::SHA256.new, @challenge))
+              ].join(';'))
       end
 
       it 'fails if the timestamp is more than 5 mins ago ' do
@@ -62,7 +65,10 @@ describe 'Token Endpoint' do
     context 'valid time' do
       before do
         @code = Base64.encode64( 
-              [@time.to_i, bob.encryption_key.sign(OpenSSL::Digest::SHA256.new, @challenge)].join(';'))
+              [@time.to_i,
+               @rand,
+               Base64.encode64(bob.encryption_key.sign(OpenSSL::Digest::SHA256.new, @challenge))
+              ].join(';'))
         AccessToken.any_instance.stub(:token).and_return('xxx')
         RefreshToken.any_instance.stub(:token).and_return('zzz')
       end
@@ -76,6 +82,14 @@ describe 'Token Endpoint' do
 
         post 'oauth2/token', @params_hash.merge(:time => @time.to_i, :client_secret => @code)
         JSON.parse(response.body).should == JSON.parse(json)
+      end
+
+      it "does not generate a token id with a preexisting nonce" do
+        hash = @params_hash.merge(:time => @time.to_i, :client_secret => @code)
+
+        post 'oauth2/token', hash
+        post 'oauth2/token', hash
+        response.body.should include("invalid_client")
       end
 
       it 'tokens a refresh token' do

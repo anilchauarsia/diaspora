@@ -72,7 +72,9 @@ class Request
 
   def receive_tokens(contact)
     time = Time.now
-    challenge = [self.sender_handle, self.recipient_handle, time.to_i].join(';')
+    nonce = SecureToken.generate(32)
+
+    challenge = [self.sender_handle, self.recipient_handle, time.to_i, nonce].join(';')
     sig = Base64.encode64(self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge))
 
     client = Rack::OAuth2::Client.new(
