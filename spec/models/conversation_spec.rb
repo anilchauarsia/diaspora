@@ -66,25 +66,25 @@ describe Conversation do
 
       it 'creates a message' do
         lambda{
-          Diaspora::Parser.from_xml(@xml).receive(@user1, @user2.person)
+          Diaspora::Parser.from_xml(@xml).first.receive(@user1, @user2.person)
         }.should change(Message, :count).by(1)
       end
       it 'creates a conversation' do
         lambda{
-          Diaspora::Parser.from_xml(@xml).receive(@user1, @user2.person)
+          Diaspora::Parser.from_xml(@xml).first.receive(@user1, @user2.person)
         }.should change(Conversation, :count).by(1)
       end
       it 'creates appropriate visibilities' do
         lambda{
-          Diaspora::Parser.from_xml(@xml).receive(@user1, @user2.person)
+          Diaspora::Parser.from_xml(@xml).first.receive(@user1, @user2.person)
         }.should change(ConversationVisibility, :count).by(@participant_ids.size)
       end
       it 'does not save before receive' do
-        Diaspora::Parser.from_xml(@xml).persisted?.should be_false
+        Diaspora::Parser.from_xml(@xml).first.persisted?.should be_false
       end
       it 'notifies for the message' do
         Notification.should_receive(:notify).once
-        Diaspora::Parser.from_xml(@xml).receive(@user1, @user2.person)
+        Diaspora::Parser.from_xml(@xml).first.receive(@user1, @user2.person)
       end
     end
   end

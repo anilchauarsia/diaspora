@@ -52,5 +52,15 @@ describe Post do
   end
 
   describe '#receive' do
+    it 'saves public posts' do
+      #this is done via GET so no need to check for contact
+      post = Factory.build(:status_message, :author_id => eve.person.id, :public => true)
+      lambda{
+        post.receive(alice, eve.person)
+      }.should change{
+        Post.count
+      }.by(1)
+
+    end
   end
 end

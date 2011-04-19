@@ -197,10 +197,12 @@ Diaspora::Application.routes.draw do
 
   #API
   scope 'api/v0', :controller => :apis do
-    match 'statuses/public_timeline' => :public_timeline
-    match 'statuses/home_timeline'   => :home_timeline
-    match 'statuses/show/:guid'      => :statuses
-    match 'statuses/user_timeline'   => :user_timeline
+    scope 'statuses' do
+      match 'public_timeline' => :public_timeline
+      match 'home_timeline'   => :home_timeline
+      match 'show/:guid'      => :statuses
+      match 'user_timeline'   => :user_timeline
+    end
 
     match 'users/show'               => :users
     match 'users/search'             => :users_search

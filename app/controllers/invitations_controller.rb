@@ -43,13 +43,13 @@ class InvitationsController < Devise::InvitationsController
       user = User.find_by_invitation_token(params[:user][:invitation_token])
       user.accept_invitation!(params[:user])
       user.seed_aspects
-    rescue Exception => e
-      user = nil
-      record = e.record
-      record.errors.delete(:person)
+   rescue Exception => e
+     user = nil
+     record = e.record
+     record.errors.delete(:person)
 
-      flash[:error] = record.errors.full_messages.join(", ")
-    end
+     flash[:error] = record.errors.full_messages.join(", ")
+   end
 
     if user
       flash[:notice] = I18n.t 'registrations.create.success'

@@ -73,7 +73,7 @@ describe Postzord::Receiver do
     end
 
     it 'parses the salmon object' do
-      Diaspora::Parser.should_receive(:from_xml).with(@salmon.parsed_data).and_return(@original_post)
+      Diaspora::Parser.should_receive(:from_xml).with(@salmon.parsed_data).and_return([@original_post])
       @zord.perform
     end
   end

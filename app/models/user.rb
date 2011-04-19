@@ -298,7 +298,7 @@ class User < ActiveRecord::Base
     end
 
     self.person = Person.new(opts[:person])
-    self.person.diaspora_handle = "#{opts[:username]}@#{AppConfig[:pod_uri].host}"
+    self.person.diaspora_handle = Person.construct_handle(opts[:username])
     self.person.url = AppConfig[:pod_url]
 
 

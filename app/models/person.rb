@@ -212,7 +212,10 @@ class Person < ActiveRecord::Base
     end
   end
 
-  def to_twitter(format=:json)
+  def self.construct_handle(username)
+    str = "#{username}@#{AppConfig[:pod_uri].host}"
+    str += ":#{AppConfig[:pod_uri].port}" unless ["80", "443"].include?(AppConfig[:pod_uri].port.to_s)
+    str
   end
 
   protected

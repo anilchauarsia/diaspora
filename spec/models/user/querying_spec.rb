@@ -270,4 +270,10 @@ describe User do
       alice.posts_from(@user3.person).map{|p| p.id}.should == [msg4, msg3, @public_message].map{|p| p.id}
     end
   end
+
+  describe '#posts_for' do
+    it do
+      pending
+    end
+  end
 end

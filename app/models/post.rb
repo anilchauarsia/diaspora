@@ -96,7 +96,7 @@ class Post < ActiveRecord::Base
       end
     elsif !local_post
       if self.save
-        user.contact_for(person).receive_post(self)
+        user.contact_for(person).receive_post(self) unless self.public?
         user.notify_if_mentioned(self)
         Rails.logger.info("event=receive payload_type=#{self.class} update=false status=complete sender=#{self.diaspora_handle}")
         return self

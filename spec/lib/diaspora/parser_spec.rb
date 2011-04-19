@@ -23,7 +23,7 @@ describe Diaspora::Parser do
       comment = Factory.create(:comment, :post => post, :author => @person, :diaspora_handle => @person.diaspora_handle, :text => "Freedom!")
       comment.delete
       xml = comment.to_diaspora_xml
-      comment_from_xml = Diaspora::Parser.from_xml(xml)
+      comment_from_xml = Diaspora::Parser.from_xml(xml).first
       comment_from_xml.diaspora_handle.should ==  @person.diaspora_handle
       comment_from_xml.post.should == post
       comment_from_xml.text.should == "Freedom!"

@@ -1,7 +1,7 @@
 class ApisController < ApplicationController #We should start with this versioned, V0ApisController  BEES
   before_filter :authenticate_user!, :only => [:home_timeline]
   respond_to :json
-
+  respond_to :xml, :only => [:user_timeline]
   #posts
   def public_timeline
     set_defaults
@@ -14,7 +14,13 @@ class ApisController < ApplicationController #We should start with this versione
   def user_timeline
     set_defaults
 
-    if person = Person.where(:guid => params[:user_id]).first
+    if params[:user_id]
+      person = Person.where(:guid => params[:user_id]).first
+    elsif params[:screen_name]
+      person = Person.where(:diaspora_handle => params[:screen_name]).first
+    end
+    
+    if person 
       if user_signed_in?
         timeline = current_user.posts_from(person)
       else
@@ -22,6 +28,13 @@ class ApisController < ApplicationController #We should start with this versione
       end
       respond_with timeline do |format|
         format.json{ render :json => timeline.to_json(:format => :twitter) }
+        format.xml do
+          timeline = timeline.collect do |post|
+            post.to_xml.to_s
+          end
+
+          render :xml => timeline.join('')
+        end
       end
     else
       render :json => {:status => 'failed', :reason => 'user not found'}, :status => 404
