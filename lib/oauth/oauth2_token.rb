@@ -8,7 +8,8 @@ module Oauth2Token
       belongs_to :client
 
       before_validation :setup, :on => :create
-      validates :token, :presence => true, :uniqueness => true
+      validates_presence_of :token
+      validates_uniqueness_of :token, :scope => :client_id
       
       validate do
         if !client_id && !contact_id
