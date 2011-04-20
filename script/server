@@ -99,6 +99,7 @@ prev_arg=''
 for arg in $( echo $args | awk '{ for (i = 1; i <= NF; i++) print $i}')
 do
     [ "$prev_arg" = '-p' ] && THIN_PORT="$arg"
+    [ "$prev_arg" = '-w' ] && SOCKET_PORT="$arg"
     prev_arg="$arg"
 done
 
