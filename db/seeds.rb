@@ -18,6 +18,7 @@ include HelperMethods
 alice, bob, eve = ["alice",'bob','eve'].collect do |u|
   u = User.build( :username => u, :password => 'evankorth', :email => "#{u}@gmail.com", :invites => 10)
   u.save!
+  u.seed_aspects
   u
 end
 
