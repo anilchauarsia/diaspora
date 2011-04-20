@@ -184,6 +184,11 @@ describe PeopleController do
         get :show, :id => p.id
         response.status.should == 404
       end
+
+      it 'does not queue a job to retrieve history' do
+        Resque.should_not_receive(:enqueue).with(Job::RetrieveHistory, alice.id, @person.id)
+        get :show, :id => @person.id
+      end
     end
 
     context "when the person is a contact of the current user" do
@@ -249,6 +254,11 @@ describe PeopleController do
       it 'sets @commenting_disabled to true' do
         get :show, :id => @person.id
         assigns(:commenting_disabled).should == true
+      end
+
+      it 'queues a job to retrieve history' do
+        Resque.should_receive(:enqueue).with(Job::RetrieveHistory, alice.id, @person.id)
+        get :show, :id => @person.id
       end
     end
   end

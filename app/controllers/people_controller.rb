@@ -87,10 +87,13 @@ class PeopleController < ApplicationController
           @commenting_disabled = false
         end
         @posts = current_user.posts_from(@person).where(:type => ["StatusMessage", "ActivityStreams::Photo"]).includes(:comments).limit(15).where(StatusMessage.arel_table[:created_at].lt(max_time))
+
+        Resque.enqueue(Job::RetrieveHistory, current_user.id, @person.id)
       else
         @commenting_disabled = true
         @posts = @person.posts.where(:type => ["StatusMessage", "ActivityStreams::Photo"], :public => true).includes(:comments).limit(15).where(StatusMessage.arel_table[:created_at].lt(max_time)).order('posts.created_at DESC')
       end
+
 
       @posts = PostsFake.new(@posts)
 

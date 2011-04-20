@@ -1,0 +1,14 @@
+#to make this work, run
+#in vagrant,
+#rake install --rakefile PROVISION_VAGRANT
+
+require 'rake'
+
+task :install do
+#system('wget --no-check-certificate https://github.com/joshfng/railsready/raw/master/railsready.sh && bash railsready.sh')
+system('source ~/.bash_profile')
+system('sudo apt-get install -y mysql-server redis-server')
+system('bundle')
+puts "done, run script/server to rock it"
+
+end
