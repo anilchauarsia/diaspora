@@ -33,7 +33,7 @@ class ApisController < ApplicationController #We should start with this versione
             post.to_xml.to_s
           end
 
-          render :xml => timeline.join('')
+          render :xml => "<XML><post>#{timeline.join('')}</post></XML>"
         end
       end
     else
