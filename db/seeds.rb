@@ -15,9 +15,11 @@ require 'factory_girl_rails'
 require File.join(File.dirname(__FILE__), "..", "spec", "helper_methods")
 include HelperMethods
 
-alice = Factory(:user_with_aspect, :username => "alice", :password => 'evankorth', :invites => 10)
-bob   = Factory(:user_with_aspect, :username => "bob", :password => 'evankorth', :invites => 10)
-eve   = Factory(:user_with_aspect, :username => "eve", :password => 'evankorth', :invites => 10)
+alice, bob, eve = ["alice",'bob','eve'].collect do |u|
+  u = User.build( :username => u, :password => 'evankorth', :email => "#{u}@gmail.com", :invites => 10)
+  u.save!
+  u
+end
 
 alice.person.profile.update_attributes(:first_name => "Alice", :last_name => "Smith")
 bob.person.profile.update_attributes(:first_name => "Bob", :last_name => "Grimm")

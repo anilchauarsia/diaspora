@@ -11,7 +11,7 @@ module Job
     def self.perform_delegate(requesting_user_id, person_id)
       user = User.find(requesting_user_id)
       person = Person.find(person_id)
-      url = "#{person.url}statuses/user_timeline?user_id=#{person.guid}"
+      url = "#{person.url}api/v0/statuses/user_timeline?screen_name=#{person.diaspora_handle}"
 
       RestClient.get(url) do |body, req, res|
         [*Diaspora::Parser.from_xml(body)].map do |obj|

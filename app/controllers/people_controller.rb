@@ -30,7 +30,11 @@ class PeopleController < ApplicationController
         @hashes = hashes_for_people(@people, @aspects)
 
         #only do it if it is an email address
-        if params[:q].try(:match, Devise.email_regexp)
+
+        puts params[:q]
+
+        if params[:q].try(:match, /.+@.+/)
+          puts 'in here'
           webfinger(params[:q])
         end
       end
