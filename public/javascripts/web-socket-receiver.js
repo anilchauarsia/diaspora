@@ -49,7 +49,7 @@ var WebSocketReceiver = {
           WebSocketReceiver.processLike(obj.post_id, obj.html);
 
         } else {
-          WebSocketReceiver.processPost(obj['class'], obj.post_id, obj.html, obj.aspect_ids);
+          WebSocketReceiver.processPost(obj['class'], obj.post_id, obj.html, obj.aspect_ids, obj.author_id);
         }
       }
   },
@@ -128,8 +128,8 @@ var WebSocketReceiver = {
     $('.likes', post).html(html);
   },
 
-  processPost: function(className, postId, html, aspectIds) {
-    if(WebSocketReceiver.onPageForAspects(aspectIds)) {
+  processPost: function(className, postId, html, aspectIds, authorId) {
+    if(WebSocketReceiver.onPageForAspects(aspectIds) || WebSocketReceiver.onPageForAuthor(authorId) ) {
       ContentUpdater.addPostToStream(postId, html);
     }
   },
@@ -149,6 +149,10 @@ var WebSocketReceiver = {
       }
     });
     return found;
+  },
+
+  onPageForAuthor: function(authorId) {
+    return(document.location.href.match('people/'+authorId+'[^\d]*') != null)
   },
 
   onStreamForAspect: function(aspectId, streamIds) {

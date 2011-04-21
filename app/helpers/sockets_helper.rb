@@ -63,7 +63,7 @@ module SocketsHelper
       Rails.logger.error("event=socket_render status=fail user=#{user.diaspora_handle} object=#{object.id.to_s}")
       raise e
     end
-    action_hash = {:class =>object.class.to_s.underscore.pluralize, :html => v, :post_id => obj_id(object)}
+    action_hash = {:class =>object.class.to_s.underscore.pluralize, :html => v, :post_id => obj_id(object), :author_id => object.author.id}
     action_hash.merge! opts
     if object.is_a? Photo
       action_hash[:photo_hash] = object.thumb_hash
