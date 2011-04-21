@@ -41,12 +41,12 @@ Cucumber::Rails::World.use_transactional_fixtures = false
 
 require File.join(File.dirname(__FILE__), "database_cleaner_patches")
 
-#require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_redis")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_http_request")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_resque")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "receive_tokens_stub")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "helper_methods")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support","user_methods")
+require File.join(File.dirname(__FILE__), "fake_retrieve_history")
 include HelperMethods
 
 Before do
