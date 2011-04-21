@@ -58,7 +58,7 @@ class Request
   end
 
   def receive(user, person)
-    Rails.logger.info("event=receive payload_type=request sender=#{self.sender} to=#{self.recipient}")
+    Rails.logger.info("event=receive payload_type=request sender=#{self.sender.diaspora_handle} to=#{self.recipient.diaspora_handle}")
 
     contact = user.contacts.find_or_initialize_by_person_id(self.sender.id)
 

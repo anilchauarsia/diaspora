@@ -14,6 +14,8 @@ Feature: sending and receiving requests
     When I fill in "status_message_fake_text" with "I am following you"
       And I press "Share"
 
+    And I wait for the ajax to finish
+
     Then I go to the destroy user session page
     
   Scenario: see follower's posts on their profile page and not on the home page

@@ -10,7 +10,7 @@ describe Job::RetrieveHistory do
 
     @xml = "<XML><post>#{ @xml }</post></XML>"
 
-    stub_request(:get, "#{@person.url}statuses/user_timeline?user_id=#{@person.guid}").
+    stub_request(:get, "#{@person.url}api/v0/statuses/user_timeline?screen_name=#{@person.diaspora_handle}").
     with(:headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate'}).
     to_return(:status => 200, :body => @xml, :headers => {})
   end
