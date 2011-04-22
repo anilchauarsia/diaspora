@@ -1,5 +1,5 @@
 class ApisController < ApplicationController #We should start with this versioned, V0ApisController  BEES
-  before_filter :authenticate_user!, :only => [:home_timeline]
+  before_filter :require_oauth_token, :only => [:home_timeline]
   respond_to :json
   respond_to :xml, :only => [:user_timeline]
   #posts
@@ -21,8 +21,13 @@ class ApisController < ApplicationController #We should start with this versione
     end
     
     if person 
-      if user_signed_in?
-        timeline = current_user.posts_from(person)
+      if @current_token
+        pp "with current_token"
+        user = @current_token.contact.user
+        aspect_ids = user.aspects_with_person(person).map{|a| a.id}
+
+        pp aspect_ids
+        timeline = Posts.joins(:aspect_visibilities).where(:aspect_visibilities => {:aspect_id => aspect_ids}).all
       else
         timeline = StatusMessage.where(:public => true, :author_id => person.id).includes(:photos).paginate(:page => params[:page], :per_page => params[:per_page], :order => "#{params[:order]} DESC")
       end
@@ -124,5 +129,10 @@ class ApisController < ApplicationController #We should start with this versione
     params[:per_page] = 20 if params[:per_page].nil? || params[:per_page] > 100
     params[:order] = 'created_at' unless ['created_at', 'updated_at'].include?(params[:order])
     params[:page] ||= 1
+  end
+
+  def require_oauth_token
+    @current_token = AccessToken.where("token = #{request.env[Rack::OAuth2::Server::Resource::ACCESS_TOKEN]} AND client_id IS NOT NULL").first
+    raise Rack::OAuth2::Server::Resource::Bearer::Unauthorized unless @current_token
   end
 end
