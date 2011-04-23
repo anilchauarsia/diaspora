@@ -21,7 +21,7 @@ module Oauth2Token
       end
 
       scope :valid, lambda {
-        where(:expires_at.gte => Time.now.utc)
+        where("expires_at > #{ Time.now.utc.to_i}")
       }
     end
   end

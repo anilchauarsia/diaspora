@@ -1,5 +1,5 @@
 class ApisController < ApplicationController #We should start with this versioned, V0ApisController  BEES
-  before_filter :require_oauth_token, :only => [:home_timeline]
+  before_filter :require_oauth_token, :only => [:user_timeline]
   respond_to :json
   respond_to :xml, :only => [:user_timeline]
   #posts
@@ -22,13 +22,15 @@ class ApisController < ApplicationController #We should start with this versione
     
     if person 
       if @current_token
-        pp "with current_token"
-        user = @current_token.contact.user
+        user = @current_token.client.contact.user
         aspect_ids = user.aspects_with_person(person).map{|a| a.id}
 
         pp aspect_ids
-        timeline = Posts.joins(:aspect_visibilities).where(:aspect_visibilities => {:aspect_id => aspect_ids}).all
+        pp Aspect.find(aspect_ids.first).posts
+        timeline = Post.joins(:aspect_visibilities).where(:aspect_visibilities => {:aspect_id => aspect_ids}).all
+        pp timeline
       else
+        pp "without access token"
         timeline = StatusMessage.where(:public => true, :author_id => person.id).includes(:photos).paginate(:page => params[:page], :per_page => params[:per_page], :order => "#{params[:order]} DESC")
       end
       respond_with timeline do |format|
@@ -132,7 +134,10 @@ class ApisController < ApplicationController #We should start with this versione
   end
 
   def require_oauth_token
-    @current_token = AccessToken.where("token = #{request.env[Rack::OAuth2::Server::Resource::ACCESS_TOKEN]} AND client_id IS NOT NULL").first
-    raise Rack::OAuth2::Server::Resource::Bearer::Unauthorized unless @current_token
+    token = params[:oauth_token] #request.env[Rack::OAuth2::Server::Resource::Bearer]
+    pp token
+    @current_token = AccessToken.where("token = '#{token}' AND client_id IS NOT NULL").first if token
+    pp @current_token
+    #raise Rack::OAuth2::Server::Resource::Bearer::Unauthorized unless @current_token
   end
 end
