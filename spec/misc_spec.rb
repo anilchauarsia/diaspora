@@ -25,7 +25,7 @@ describe 'making sure the spec runner works' do
       @aspect1 = @user1.aspects.first
       @aspect2 = @user2.aspects.first
 
-      connect_users(@user1, @aspect1, @user2, @aspect2)
+      @c1, @c2 = connect_users(@user1, @aspect1, @user2, @aspect2)
     end
 
     it 'connects the first user to the second' do
@@ -42,6 +42,34 @@ describe 'making sure the spec runner works' do
       @user2.contacts.reload.include?(contact).should be_true
       @aspect2.contacts.include?(contact).should be_true
       contact.aspects.include?(@aspect2).should be_true
+    end
+
+    it 'returns a pair of contacts' do
+      [@c1, @c2].each{ |c| c.is_a?(Contact).should be_true}
+    end
+
+    it 'creates a client for every contact that is created' do
+      [@c1, @c2].each{ |c| c.client.should_not be_nil}
+    end
+
+    it 'creates an access token for clients' do
+      [@c1, @c2].each{ |c| c.client.access_tokens.first.should_not be_nil}
+    end
+
+    it 'creates an refresh token for clients' do
+      [@c1, @c2].each{ |c| c.client.refresh_tokens.first.should_not be_nil}
+    end
+    
+    it 'creates appropriate access token for contacts' do
+      [@c1, @c2].each{ |c| c.access_token.should_not be_nil}
+      @c1.access_token.token.should == @c2.client.access_tokens.first.token
+      @c2.access_token.token.should == @c1.client.access_tokens.first.token
+    end
+
+    it 'creates appropriate refresh token for contacts' do
+      [@c1, @c2].each{ |c| c.refresh_token.should_not be_nil}
+      @c2.refresh_token.token.should == @c1.client.refresh_tokens.first.token
+      @c1.refresh_token.token.should == @c2.client.refresh_tokens.first.token
     end
 
     it 'allows posting after running' do
