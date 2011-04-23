@@ -52,6 +52,7 @@ describe ApisController do
         @request_hash[:access_token] = @contact.client.access_tokens.valid.first
         @request_hash[:screen_name] = @contact.person.diaspora_handle
       end
+      pp @request_hash
     }
 
     before do
