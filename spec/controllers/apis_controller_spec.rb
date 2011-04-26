@@ -47,19 +47,20 @@ describe ApisController do
   end
 
   context 'protected timelines' do
-    def authenticate(contact)
+    def authenticate(user, person)
       @request_hash = {:format => :xml}
-      if contact
+      if !user.nil? && (contact = user.contact_for(person))
         @request_hash[:oauth_token] = contact.client.access_tokens.valid.first.token
 
         #@request_hash['Authorization'] = "Bearer #{@request_hash[:oauth_token]}"
-        @request_hash[:screen_name] = contact.person.diaspora_handle
       end
+      @request_hash[:screen_name] = person.diaspora_handle
     end
 
     before do
       @message1 = alice.post(:status_message, :text=> "hello", :to => alice.aspects.first)
       @message2 = eve.post(:status_message, :text=> "hello", :to => eve.aspects.first)
+      @message3 = alice.post(:status_message, :public => true, :text=> "hello", :to => alice.aspects.first)
     end
 
 =begin
@@ -111,10 +112,13 @@ describe ApisController do
     describe '#user_timeline' do
       context 'unauthenticated' do
         it 'shows public posts' do
+          authenticate nil, alice.person
           get :user_timeline, @request_hash
-          posts = Diaspora::Parser.from_xml(response.body)
-          posts.first.should == @status_message1
-          posts.length.should == 1
+         #posts = Diaspora::Parser.from_xml(response.body)
+         #posts.first.should == @status_message1
+         #posts.length.should == 1
+
+          response.body.should include(@message3.to_diaspora_xml)
         end
         it 'does not show non-public posts' do
           get :user_timeline,  @request_hash
@@ -129,25 +133,22 @@ describe ApisController do
           end
 
           it 'shows alice' do
-            authenticate bob.contact_for(alice.person)
+            authenticate bob, alice.person
             get :user_timeline, @request_hash 
-            p = Diaspora::Parser.from_xml(response.body)
 
-            p.length.should == 1
-            p[0].should == @message1
+            response.body.should include(@message1.to_xml.to_s)
+            response.body.should_not include(@message2.to_xml.to_s)
+            response.body.should include(@message3.to_xml.to_s)
           end
 
           it 'shows eve' do
-            authenticate bob.contact_for(eve.person)
+            authenticate bob, eve.person
             get :user_timeline, @request_hash
-            p = Diaspora::Parser.from_xml(response.body)
-
-            p.length.should == 1
-            p[0].should == @message2
+            response.body.should include(@message2.to_diaspora_xml)
           end
 
           it 'shows bob' do
-            authenticate bob.contact_for(bob.person)
+            authenticate bob, bob.person
             get :user_timeline, @request_hash 
             p = Diaspora::Parser.from_xml(response.body)
             p.length.should == 0
@@ -161,7 +162,7 @@ describe ApisController do
 
           it 'shows alice' do
             pending "This is alice accessing her own private stuff, client app"
-            authenticate alice.contact_for(alice.person)
+            authenticate alice, alice.person
             get :user_timeline, @request_hash 
             p = Diaspora::Parser.from_xml(response.body)
 
@@ -170,7 +171,7 @@ describe ApisController do
           end
 
           it 'shows eve' do
-            authenticate alice.contact_for(eve.person)
+            authenticate alice, eve.person
             get :user_timeline, @request_hash
             p = Diaspora::Parser.from_xml(response.body)
 

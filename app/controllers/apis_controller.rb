@@ -14,20 +14,24 @@ class ApisController < ApplicationController #We should start with this versione
   def user_timeline
     set_defaults
 
+    pp "after set defaults"
     if params[:user_id]
       person = Person.where(:guid => params[:user_id]).first
     elsif params[:screen_name]
       person = Person.where(:diaspora_handle => params[:screen_name]).first
     end
     
+    pp person
+
     if person 
       if @current_token
+        pp "with access token"
         user = @current_token.client.contact.user
-        aspect_ids = user.aspects_with_person(person).map{|a| a.id}
+        contact_id = user.contact_for(person).id
 
-        pp aspect_ids
-        pp Aspect.find(aspect_ids.first).posts
-        timeline = Post.joins(:aspect_visibilities).where(:aspect_visibilities => {:aspect_id => aspect_ids}).all
+        pp bob.raw_visible_posts.map(&:contacts)
+        pp user.diaspora_handle
+        timeline = Post.joins(:post_visibilities).where(:post_visibilities => {:contact_id => contact_id}).all
         pp timeline
       else
         pp "without access token"
@@ -135,9 +139,8 @@ class ApisController < ApplicationController #We should start with this versione
 
   def require_oauth_token
     token = params[:oauth_token] #request.env[Rack::OAuth2::Server::Resource::Bearer]
-    pp token
     @current_token = AccessToken.where("token = '#{token}' AND client_id IS NOT NULL").first if token
-    pp @current_token
+    pp "at the end of require oauth token"
     #raise Rack::OAuth2::Server::Resource::Bearer::Unauthorized unless @current_token
   end
 end
