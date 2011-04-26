@@ -109,7 +109,7 @@ describe Request do
 
       @json = {
          :access_token => "SlAV32hkKG",
-         :token_type => "example",
+         :token_type => "bearer",
          :refresh_token => "8xLOxBtZp8",
          :example_parameter => "example_value"
       }
