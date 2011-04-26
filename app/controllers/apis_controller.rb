@@ -14,27 +14,19 @@ class ApisController < ApplicationController #We should start with this versione
   def user_timeline
     set_defaults
 
-    pp "after set defaults"
     if params[:user_id]
       person = Person.where(:guid => params[:user_id]).first
     elsif params[:screen_name]
       person = Person.where(:diaspora_handle => params[:screen_name]).first
     end
     
-    pp person
-
     if person 
       if @current_token
-        pp "with access token"
         user = @current_token.client.contact.user
         contact_id = user.contact_for(person).id
 
-        pp bob.raw_visible_posts.map(&:contacts)
-        pp user.diaspora_handle
         timeline = Post.joins(:post_visibilities).where(:post_visibilities => {:contact_id => contact_id}).all
-        pp timeline
       else
-        pp "without access token"
         timeline = StatusMessage.where(:public => true, :author_id => person.id).includes(:photos).paginate(:page => params[:page], :per_page => params[:per_page], :order => "#{params[:order]} DESC")
       end
       respond_with timeline do |format|
@@ -140,7 +132,6 @@ class ApisController < ApplicationController #We should start with this versione
   def require_oauth_token
     token = params[:oauth_token] #request.env[Rack::OAuth2::Server::Resource::Bearer]
     @current_token = AccessToken.where("token = '#{token}' AND client_id IS NOT NULL").first if token
-    pp "at the end of require oauth token"
     #raise Rack::OAuth2::Server::Resource::Bearer::Unauthorized unless @current_token
   end
 end

@@ -1,78 +1,7 @@
 #   Copyright (c) 2010, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
-
-
-
-# OAUTH2 RACK APP -- token endpoint
-def setup_response(response, access_token, with_refresh_token = false)
-  response.access_token = access_token.token
-  response.refresh_token = access_token.create_refresh_token(
-    :contact => access_token.contact,
-    :client => access_token.client
-  ).token if with_refresh_token
-  response.token_type = access_token.token_type
-  response.expires_in = access_token.expires_in
-end
-
-token_endpoint = Rack::OAuth2::Server::Token.new do |req, res|
-  split = req.client_id.split(";")
-  sender_handle = split[0]
-  username = sender_handle.split('@')[0]
-  recepient_handle = split[1]
-  contact = Contact.joins(:user).joins(:person).where(:users => {:username => username}, :people => {:diaspora_handle => recepient_handle}).first
-  client = contact ? contact.client : nil 
-  error(req, :invalid_client!) unless client
-
-  split = Base64.decode64(req.client_secret).split(';')
-  time = split[0]
-  nonce = split[1]
-  signature = split[2]
-  challenge = [sender_handle, recepient_handle, time, nonce].join(";")
-
-  (valid_time?(time) && valid_nonce?(client, nonce) && verify_signature(client, challenge, signature)) || error(req, :invalid_client!)
-
-  case req.grant_type
-  when :authorization_code
-    code = AuthorizationCode.valid.find_by_token(req.code)
-    req.invalid_grant! if code.blank? || code.redirect_uri != req.redirect_uri
-    setup_response res, code.access_token, :with_refresh_token
-  when :password
-    # NOTE: password is not hashed in this sample app. Don't do the same on your app.
-    account = Account.find_by_username_and_password(req.username, req.password) || req.invalid_grant!
-    setup_response res, account.access_tokens.create(:client => client), :with_refresh_token
-  when :client_credentials
-    # NOTE: client is already authenticated here.
-    setup_response res, client.access_tokens.create(:nonce => nonce), :with_refresh_token
-  when :refresh_token
-    refresh_token = client.refresh_tokens.valid.find_by_token(req.refresh_token)
-    setup_response res, refresh_token.access_tokens.create
-  else
-    # NOTE: extended assertion grant_types are not supported yet.
-    req.unsupported_grant_type!
-  end
-end
-
-def verify_signature(client, challenge, signature)
-  client.contact.person.public_key.verify(OpenSSL::Digest::SHA256.new, Base64.decode64(signature), challenge)
-end
-
-def valid_time?(time)
-  time.to_i > (Time.now - 5.minutes).to_i
-end
-
-def valid_nonce?(client, nonce)
-  client.access_tokens.where(:nonce => nonce).first.nil? 
-end
-
-def error(req, error)
-  req.env["warden"].custom_failure!
-  req.send(error)
-end
-
-
-
-
+require 'token_endpoint'
 
 Diaspora::Application.routes.draw do
 
@@ -192,7 +121,8 @@ Diaspora::Application.routes.draw do
   #Oauth - adapted from https://github.com/nov/rack-oauth2-sample/ 
   resources :authorizations, :only => :create
   match 'oauth2/authorize', :to => 'authorizations#new'
-  post 'oauth2/token', :to => proc { |env| token_endpoint.call(env) }
+  post 'oauth2/token', :to => proc { |env| TokenEndpoint.new.call(env) }
+
 
 
   #API
