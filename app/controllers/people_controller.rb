@@ -68,6 +68,9 @@ class PeopleController < ApplicationController
 
       if current_user
         @contact = current_user.contact_for(@person)
+
+        Resque.enqueue(Job::RetrieveHistory, current_user.id, @person.id) if @contact.nil? || @contact.fetched_at.blank?
+        
         @aspects_with_person = []
         if @contact && !params[:only_posts]
           @aspects_with_person = @contact.aspects

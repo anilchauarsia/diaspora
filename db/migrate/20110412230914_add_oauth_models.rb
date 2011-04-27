@@ -20,9 +20,13 @@ class AddOauthModels < ActiveRecord::Migration
       t.datetime :expires_at
       t.timestamps
     end
+
+    add_column :contacts, :fetched_at, :datetime
   end
 
   def self.down
+    remove_column :contacts, :fetched_at
+
     drop_table :clients
     drop_table :refresh_tokens
     drop_table :access_tokens

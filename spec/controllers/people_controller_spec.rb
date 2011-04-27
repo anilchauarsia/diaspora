@@ -223,6 +223,20 @@ describe PeopleController do
         get :show, :id => @person.id
         assigns(:commenting_disabled).should == false
       end
+
+      it 'enqueues a job to retrieve history if the fetched_at is blank' do
+        Resque.should_receive(:enqueue).with(Job::RetrieveHistory, alice.id, @person.id)
+        get :show, :id => @person.id
+      end
+
+      it 'does not enqueue a job to retrieve history if the fetched_at is not blank' do
+        c = alice.contact_for(bob.person)
+        c.fetched_at = Time.now
+        c.save
+
+        Resque.should_not_receive(:enqueue).with(Job::RetrieveHistory, alice.id, @person.id)
+        get :show, :id => @person.id
+      end
     end
 
     context "when the person is not a contact of the current user" do
