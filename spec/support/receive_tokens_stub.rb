@@ -1,4 +1,4 @@
-class Request
+class Contact
 
   alias_method :receive_tokens_original, :receive_tokens
 

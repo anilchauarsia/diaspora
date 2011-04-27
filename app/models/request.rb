@@ -70,31 +70,6 @@ class Request
     self
   end
 
-  def receive_tokens(contact)
-    time = Time.now
-    nonce = SecureToken.generate(32)
-
-    challenge = [self.sender_handle, self.recipient_handle, time.to_i, nonce].join(';')
-    sig = Base64.encode64(self.recipient.owner.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge))
-
-    client = Rack::OAuth2::Client.new(
-      :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
-      :secret => Base64.encode64("#{time.to_i};#{nonce};#{sig}"),
-      #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
-      :host => URI.parse(sender.url).host,
-      :port => URI.parse(sender.url).port.to_s,
-      :time => time.to_i.to_s
-    )
-
-    save_tokens(client.access_token!, contact)
-  end
-
-  def save_tokens(response, contact)
-    response = JSON.parse(response.to_json.to_s)
-    refresh_token = RefreshToken.create!(:token => response['refresh_token'], :contact => contact)
-    access_token = AccessToken.create!(:token => response['access_token'], :refresh_token => refresh_token, :contact => contact)
-  end
-
   private
 
   def not_already_connected

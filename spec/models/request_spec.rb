@@ -91,7 +91,7 @@ describe Request do
     it 'calls receive_tokens' do
      request = Request.diaspora_initialize(:from => alice.person, :to => eve.person, :into => @aspect)
 
-     request.should_receive(:receive_tokens)
+     Contact.any_instance.should_receive(:receive_tokens)
      request.receive(eve, alice.person)
     end
   end

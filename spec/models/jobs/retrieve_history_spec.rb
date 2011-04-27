@@ -16,16 +16,14 @@ describe Job::RetrieveHistory do
     @public_xml = "<XML><post>#{ @public_xml }</post></XML>"
     @private_xml = "<XML><post>#{ @private_xml }</post></XML>"
 
+    stub_request(:get, "#{@person.url}api/v0/statuses/user_timeline?format=xml&screen_name=#{@person.diaspora_handle}").
+      with( :headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate'}).
+      to_return(:status => 200, :body => @public_xml, :headers => {})
   end
 
   context 'public posts' do
-    before do
-      stub_request(:get, "#{@person.url}api/v0/statuses/user_timeline?screen_name=#{@person.diaspora_handle}").
-      with(:headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate'}).
-      to_return(:status => 200, :body => @public_xml, :headers => {})
-    end
-
     it 'does a GET for public posts' do
+      Job::RetrieveHistory.perform(@user, @person)
     end
 
     it 'saves public posts from a response' do
@@ -39,12 +37,16 @@ describe Job::RetrieveHistory do
 
   context 'private posts' do
     before do
-      stub_request(:get, "#{@person.url}api/v0/statuses/user_timeline?screen_name=#{@person2.diaspora_handle}").
-      with(:headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate'}).
+      @contact = @user.contact_for(@person2)
+      url = "#{@person2.url}api/v0/statuses/user_timeline?format=xml&oauth_token=#{@contact.access_token.token}&screen_name=#{@person2.diaspora_handle}"
+      pp url
+      stub_request(:get, url).
+      #with(:headers => {'Accept'=>'*/*; q=0.5, application/xml', 'Accept-Encoding'=>'gzip, deflate'}).
       to_return(:status => 200, :body => @private_xml, :headers => {})
     end
 
     it 'does a GET for private posts if the person is sharing with user' do
+      Job::RetrieveHistory.perform(@user, @person2)
     end
  
     it "updates the contact's fetched_at time" do
@@ -53,7 +55,7 @@ describe Job::RetrieveHistory do
       lambda{
         Job::RetrieveHistory.perform(@user, @person2)
       }.should change{
-        time = @user.contact_for(@person2).fetched_at
+        time = @contact.fetched_at
         time = time.to_i if time
         time
       }.from(nil).to(@time.to_i)

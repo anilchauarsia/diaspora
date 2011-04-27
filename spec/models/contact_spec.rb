@@ -170,4 +170,114 @@ describe Contact do
       end
     end
   end
+
+  context 'sharing/receiving status' do
+    before do
+      alice.share_with(eve.person, alice.aspects.first)
+
+      @follower = eve.contact_for(alice.person)
+      @following = alice.contact_for(eve.person)
+    end
+
+    describe '#sharing?' do
+      it 'returns true if contact has no aspect visibilities' do
+        @follower.should be_sharing
+      end
+
+      it 'returns false if contact has aspect visibilities' do
+        @following.should_not be_sharing
+      end
+
+      it 'returns false if contact is not persisted' do
+        Contact.new.should_not be_sharing
+      end
+    end
+
+    describe '#receiving?' do
+      it 'returns false if contact has no aspect visibilities' do
+        @follower.should_not be_receiving
+      end
+
+      it 'returns true if contact has aspect visibilities' do
+        @following.should be_receiving
+      end
+    end
+  end
+
+  describe '#receive_tokens' do
+    # Server A issues a share request to Server B
+    # Server B requests an authorization token for Server A for GET access
+
+    # Request#receive_tokens is an alias_method as defined in
+    #  spec/support/receive_tokens_stub.rb
+
+    before do
+      RestClient.unstub!(:post)
+      client_url = "#{URI.parse(bob.person.url).host}:#{URI.parse(bob.person.url).port.to_s}"
+
+      @json = {
+         :access_token => "SlAV32hkKG",
+         :token_type => "bearer",
+         :refresh_token => "8xLOxBtZp8",
+         :example_parameter => "example_value"
+      }
+
+      @contact = alice.contact_for(bob.person)
+      @contact.access_token = nil
+      @contact.refresh_token = nil
+      @contact.save
+
+      @time = Time.now
+      Time.stub!(:now).and_return(@time)
+
+      stub_request(:post, "https://#{client_url}/oauth2/token").to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
+
+      @key = alice.encryption_key
+      alice.stub!(:encryption_key).and_return(@key)
+
+      @nonce = SecureToken.generate(32)
+      SecureToken.stub(:generate).and_return(@nonce)
+      @challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, @time.to_i, @nonce].join(";")
+
+    end
+
+    after do
+      RestClient.stub!(:post).and_return(FakeHttpRequest.new(:success))
+    end
+
+    it 'signs a challenge' do
+      @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+      Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
+      @contact.stub(:save_tokens)
+
+      @contact.receive_tokens_original
+    end
+
+    it 'POSTS a signed challenge' do
+      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+
+      @contact.receive_tokens_original
+    end
+
+    it 'stores authorization and refresh tokens' do
+      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+
+      @contact.receive_tokens_original
+      
+      pp @contact.reload.access_token
+
+      @contact.reload.access_token.token.should == @json[:access_token]
+      @contact.reload.access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
+      @contact.reload.refresh_token.token.should == @json[:refresh_token]
+      @contact.reload.refresh_token.expires_at.to_i.should == (@time + 1.month).to_i
+    end
+
+    it 'generates a nonce' do
+      SecureToken.should_receive(:generate).with(32)
+      Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
+      @contact.stub(:save_tokens)
+
+      @contact.receive_tokens_original
+    end
+  end
 end

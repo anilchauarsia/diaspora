@@ -35,6 +35,10 @@ module Oauth2Token
     self.save!
   end
 
+  def expired?
+    expires_at > Time.now.utc
+  end
+
   private
 
   def setup

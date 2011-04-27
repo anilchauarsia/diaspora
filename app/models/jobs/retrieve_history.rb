@@ -13,13 +13,28 @@ module Job
       person = Person.find(person_id)
       contact = user.contact_for(person)
 
+      api_route = "#{person.url}api/v0/statuses/user_timeline"
+      request_hash ={ :params => {:screen_name => person.diaspora_handle,
+                                              :format => :xml}}
       if contact 
+        
+        if contact.access_token.nil? || contact.access_token.expired?
+          contact.receive_tokens
+        end
+        request_hash[:params][:oauth_token] = contact.access_token.token
+
+        RestClient.get(api_route, request_hash) do |body, req, res|
+          [*Diaspora::Parser.from_xml(body)].map do |obj|
+            obj.receive(user, person)
+            obj.socket_to_user(user)
+          end
+        end
+
         contact.fetched_at = Time.now
         contact.save
       else
-        url = "#{person.url}api/v0/statuses/user_timeline?screen_name=#{person.diaspora_handle}"
 
-        RestClient.get(url) do |body, req, res|
+        RestClient.get(api_route, request_hash) do |body, req, res|
           [*Diaspora::Parser.from_xml(body)].map do |obj|
             obj.receive(user, person)
             obj.socket_to_user(user)
