@@ -210,10 +210,17 @@ describe Contact do
 
     # Request#receive_tokens is an alias_method as defined in
     #  spec/support/receive_tokens_stub.rb
-
     before do
       RestClient.unstub!(:post)
-      client_url = "#{URI.parse(bob.person.url).host}:#{URI.parse(bob.person.url).port.to_s}"
+
+      @contact = alice.contact_for(bob.person)
+      @contact.access_token.destroy
+
+
+      @time = Time.now
+      Time.stub!(:now).and_return(@time)
+
+      @client_url = "#{URI.parse(bob.person.url).host}:#{URI.parse(bob.person.url).port.to_s}"
 
       @json = {
          :access_token => "SlAV32hkKG",
@@ -221,62 +228,86 @@ describe Contact do
          :refresh_token => "8xLOxBtZp8",
          :example_parameter => "example_value"
       }
-
-      @contact = alice.contact_for(bob.person)
-      @contact.access_token.destroy
-      @contact.refresh_token.destroy
-      @contact.save
-
-      @time = Time.now
-      Time.stub!(:now).and_return(@time)
-
-      stub_request(:post, "https://#{client_url}/oauth2/token").to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
-
-      @key = alice.encryption_key
-      alice.stub(:encryption_key).and_return(@key)
-      @contact.stub(:user).and_return(alice)
-
-      @nonce = SecureToken.generate(32)
-      SecureToken.stub(:generate).and_return(@nonce)
-      @challenge = [bob.person.diaspora_handle,alice.person.diaspora_handle, @time.to_i, @nonce].join(";")
-
     end
 
     after do
       RestClient.stub(:post).and_return(FakeHttpRequest.new(:success))
     end
 
-    it 'signs a challenge' do
-      @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
-      Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
-      @contact.stub(:save_tokens)
+    context 'with refresh token' do
+      before do
+        @json[:refresh_token] = @contact.refresh_token.token
+        @original_expiration = @contact.refresh_token.expires_at.to_i
 
-      @contact.receive_tokens_original
-    end
-
-    it 'POSTS a signed challenge' do
-      @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
-
-      @contact.receive_tokens_original
-    end
-
-    it 'stores authorization and refresh tokens' do
-      @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
-
-      @contact.receive_tokens_original
+        stub_request(:post, "https://#{@client_url}/oauth2/token").
+          with(:body => /grant_type=refresh_token.*refresh_token=#{CGI.escape(@contact.refresh_token.token)}/).
+          to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
+      end
       
-      @contact.reload.access_token.token.should == @json[:access_token]
-      @contact.reload.access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
-      @contact.reload.refresh_token.token.should == @json[:refresh_token]
-      @contact.reload.refresh_token.expires_at.to_i.should == (@time + 1.month).to_i
+      it 'gets the access token using the refresh token' do
+        @contact.receive_tokens_original
+      end
+
+      it 'stores the access and does not overwite the refresh' do
+        @contact.receive_tokens_original
+
+        @contact.reload.access_token.token.should == @json[:access_token]
+        @contact.reload.access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
+        @contact.reload.refresh_token.token.should == @json[:refresh_token]
+        @contact.reload.refresh_token.expires_at.to_i.should == @original_expiration
+      end
     end
 
-    it 'generates a nonce' do
-      SecureToken.should_receive(:generate).with(32)
-      Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
-      @contact.stub(:save_tokens)
+    context 'without refresh token' do
+      before do
+        @contact.refresh_token.destroy
+        @contact.reload
 
-      @contact.receive_tokens_original
+        stub_request(:post, "https://#{@client_url}/oauth2/token").
+          with(:body => /grant_type=client_credentials/).
+          to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
+
+        @key = alice.encryption_key
+        alice.stub(:encryption_key).and_return(@key)
+        @contact.stub(:user).and_return(alice)
+
+        @nonce = SecureToken.generate(32)
+        SecureToken.stub(:generate).and_return(@nonce)
+        @challenge = [bob.person.diaspora_handle,alice.person.diaspora_handle, @time.to_i, @nonce].join(";")
+      end
+
+      it 'signs a challenge' do
+        @key.should_receive(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+        Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
+        @contact.stub(:save_tokens)
+
+        @contact.receive_tokens_original
+      end
+
+      it 'POSTS a signed challenge' do
+        @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+
+        @contact.receive_tokens_original
+      end
+
+      it 'stores authorization and refresh tokens' do
+        @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+
+        @contact.receive_tokens_original
+        
+        @contact.reload.access_token.token.should == @json[:access_token]
+        @contact.reload.access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
+        @contact.reload.refresh_token.token.should == @json[:refresh_token]
+        @contact.reload.refresh_token.expires_at.to_i.should == (@time + 1.month).to_i
+      end
+
+      it 'generates a nonce' do
+        SecureToken.should_receive(:generate).with(32)
+        Rack::OAuth2::Client.any_instance.stub(:access_token!).and_return(true)
+        @contact.stub(:save_tokens)
+
+        @contact.receive_tokens_original
+      end
     end
   end
 end

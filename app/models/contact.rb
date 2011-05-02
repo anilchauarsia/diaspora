@@ -68,32 +68,48 @@ class Contact < ActiveRecord::Base
   end
 
   def receive_tokens
-    time = Time.now
-    nonce = SecureToken.generate(32)
-
     sender = self.person
     recipient = self.user
 
-    challenge = [sender.diaspora_handle, recipient.diaspora_handle, time.to_i, nonce].join(';')
-    sig = Base64.encode64(recipient.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge))
+    if refresh_token.nil? || refresh_token.expired?
+      time = Time.now
+      nonce = SecureToken.generate(32)
+      challenge = [sender.diaspora_handle, recipient.diaspora_handle, time.to_i, nonce].join(';')
+      sig = Base64.encode64(recipient.encryption_key.sign(OpenSSL::Digest::SHA256.new, challenge))
 
-    client = Rack::OAuth2::Client.new(
-      :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
-      :secret => Base64.encode64("#{time.to_i};#{nonce};#{sig}"),
-      #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
-      :host => URI.parse(sender.url).host,
-      :port => URI.parse(sender.url).port.to_s,
-      :time => time.to_i.to_s
-    )
+      client = Rack::OAuth2::Client.new(
+        :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
+        :secret => Base64.encode64("#{time.to_i};#{nonce};#{sig}"),
+        #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
+        :host => URI.parse(sender.url).host,
+        :port => URI.parse(sender.url).port.to_s,
+        :time => time.to_i.to_s
+      )
 
-    save_tokens(client.access_token!)
+      save_tokens(client.access_token!)
+
+    else
+       client = Rack::OAuth2::Client.new(
+        :identifier => "#{sender.diaspora_handle};#{recipient.diaspora_handle}",
+        :secret => refresh_token.token,
+        #:redirect_uri => YOUR_REDIRECT_URI, # only required for grant_type = :code
+        :host => URI.parse(sender.url).host,
+        :port => URI.parse(sender.url).port.to_s,
+        :time => time.to_i.to_s
+      )     
+
+      client.refresh_token = refresh_token.token
+
+      response = client.access_token!
+      access_token = AccessToken.create!(:token => response.access_token, :refresh_token => refresh_token, :contact => self)
+    end
 
     self.save
   end
 
   def save_tokens(bearer_token)
     response = bearer_token.token_response
-    refresh_token = RefreshToken.create!(:token => response[:refresh_token], :contact => self)
+    refresh_token = RefreshToken.find_or_create_by_token_and_contact_id(response[:refresh_token], self.id)
     access_token = AccessToken.create!(:token => response[:access_token], :refresh_token => refresh_token, :contact => self)
   end
 

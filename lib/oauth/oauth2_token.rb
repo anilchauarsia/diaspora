@@ -36,7 +36,7 @@ module Oauth2Token
   end
 
   def expired?
-    expires_at > Time.now.utc
+    expires_at.to_i < Time.now.to_i
   end
 
   private
