@@ -353,8 +353,6 @@ describe Person do
         f = Person.by_account_identifier("tom@tom.joindiaspora.com")
         f.should be nil
       end
-
-
     end
 
     describe '.local_by_account_identifier' do
@@ -374,4 +372,22 @@ describe Person do
       end
     end
   end
+
+  describe '#can_fetch' do
+    it 'returns false if under 10 minutes' do
+      p = Person.new(:fetched_at => Time.now - 5.minutes)
+      p.can_fetch.should be_false
+    end
+
+    it 'returns true if under 10 minutes' do
+      p = Person.new(:fetched_at => Time.now - 15.minutes)
+      p.can_fetch.should be_true
+    end
+
+    it 'returns true if never fetched' do
+      p = Person.new(:fetched_at => nil)
+      p.can_fetch.should be_true
+    end
+  end
+
 end

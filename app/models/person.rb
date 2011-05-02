@@ -218,8 +218,12 @@ class Person < ActiveRecord::Base
     str
   end
 
-  protected
+  def can_fetch
+    return true unless self.fetched_at
+    Time.now.to_i - self.fetched_at.to_i > 10.minutes
+  end
 
+  protected
   def clean_url
     self.url ||= "http://localhost:3000/" if self.class == User
     if self.url

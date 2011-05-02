@@ -17,31 +17,33 @@ module Job
       request_hash ={ :params => {:screen_name => person.diaspora_handle,
                                               :format => :xml}}
       if contact 
-        
         if contact.access_token.nil? || contact.access_token.expired?
           contact.receive_tokens
         end
         request_hash[:params][:oauth_token] = contact.access_token.token
 
-        RestClient.get(api_route, request_hash) do |body, req, res|
-          [*Diaspora::Parser.from_xml(body)].map do |obj|
-            obj.receive(user, person)
-            obj.socket_to_user(user)
-          end
+        get_data(api_route, request_hash, user, person) do
+          contact.fetched_at = Time.now
+          contact.save!
         end
 
-        contact.fetched_at = Time.now
-        contact.save!
       else
-
-        RestClient.get(api_route, request_hash) do |body, req, res|
-          [*Diaspora::Parser.from_xml(body)].map do |obj|
-            obj.receive(user, person)
-            obj.socket_to_user(user)
-          end
+        get_data(api_route, request_hash, user, person) do
+          person.fetched_at = Time.now
+          person.save!
         end
       end
+    end
 
+    def self.get_data(api_route, request_hash, user, person)
+      RestClient.get(api_route, request_hash) do |body, req, res|
+        return unless res.code.to_i >= 200 && res.code.to_i < 400
+        [*Diaspora::Parser.from_xml(body)].map do |obj|
+          obj.receive(user, person)
+          obj.socket_to_user(user)
+        end
+        yield
+      end
     end
   end
 end

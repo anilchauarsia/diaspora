@@ -11,7 +11,7 @@ class PostsFake
       end
     end
 
-    people = Person.where(:id => author_ids).includes(:profile)
+    people = Person.where(:id => author_ids)
     @people_hash = {}
     people.each{|person| @people_hash[person.id] = person}
 
