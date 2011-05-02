@@ -69,7 +69,7 @@ class PeopleController < ApplicationController
       if current_user
         @contact = current_user.contact_for(@person)
 
-        if (@contact.nil? && @person.can_fetch) || (@contact && @contact.fetched_at.blank?)
+        if !@person.owner_id && ((@contact.nil? && @person.can_fetch) || (@contact && @contact.fetched_at.blank?))
           Resque.enqueue(Job::RetrieveHistory, current_user.id, @person.id)
         end
         

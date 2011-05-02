@@ -24,6 +24,8 @@ FixtureBuilder.configure do |fbuilder|
 
     local_leia.contacts.create(:person => remote_raphael, :aspects => [local_leia.aspects.first])
     local_luke.contacts.create(:person => remote_raphael, :aspects => [local_luke.aspects.first])
+
+    local_luke.aspects.create(:name => 'heck yes')
    end
 end
 

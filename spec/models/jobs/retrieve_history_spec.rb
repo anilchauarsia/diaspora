@@ -67,13 +67,16 @@ describe Job::RetrieveHistory do
 
     it "retrieves tokens if access token is nil" do
       @contact.access_token.destroy
-      @contact.save!
+      @contact.reload
 
-      @contact.access_token.stub(:access_token).and_return(AccessToken.new)
+      t = mock
+      t.stub(:expired?).and_return(true)
+      t.stub(:token).and_return("123")
+      @contact.stub(:access_token).and_return(t)
       @contact.should_receive(:receive_tokens)
 
       @user.stub(:contact_for).and_return(@contact)
-      User.stub(:find){ |id|
+      User.stub(:find){ |id, *args|
         id == @user.id ? @user : nil
       }
 

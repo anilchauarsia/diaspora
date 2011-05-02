@@ -240,7 +240,7 @@ describe Contact do
         @original_expiration = @contact.refresh_token.expires_at.to_i
 
         stub_request(:post, "https://#{@client_url}/oauth2/token").
-          with(:body => /grant_type=refresh_token.*refresh_token=#{CGI.escape(@contact.refresh_token.token)}/).
+          with(:body => /grant_type=refresh_token|refresh_token=#{CGI.escape(@contact.refresh_token.token)}/).
           to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
       end
       
