@@ -31,7 +31,7 @@ module Job
         end
 
         contact.fetched_at = Time.now
-        contact.save
+        contact.save!
       else
 
         RestClient.get(api_route, request_hash) do |body, req, res|

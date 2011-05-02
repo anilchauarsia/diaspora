@@ -91,10 +91,10 @@ class Contact < ActiveRecord::Base
     self.save
   end
 
-  def save_tokens(response)
-    response = JSON.parse(response.to_json.to_s)
-    refresh_token = RefreshToken.create!(:token => response['refresh_token'], :contact => self)
-    access_token = AccessToken.create!(:token => response['access_token'], :refresh_token => refresh_token, :contact => self)
+  def save_tokens(bearer_token)
+    response = bearer_token.token_response
+    refresh_token = RefreshToken.create!(:token => response[:refresh_token], :contact => self)
+    access_token = AccessToken.create!(:token => response[:access_token], :refresh_token => refresh_token, :contact => self)
   end
 
   private

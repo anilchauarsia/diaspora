@@ -65,7 +65,7 @@ class Request
     contact.sharing = true
     contact.save
 
-    receive_tokens(contact)
+    contact.receive_tokens
 
     self
   end

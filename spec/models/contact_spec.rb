@@ -223,8 +223,8 @@ describe Contact do
       }
 
       @contact = alice.contact_for(bob.person)
-      @contact.access_token = nil
-      @contact.refresh_token = nil
+      @contact.access_token.destroy
+      @contact.refresh_token.destroy
       @contact.save
 
       @time = Time.now
@@ -233,16 +233,17 @@ describe Contact do
       stub_request(:post, "https://#{client_url}/oauth2/token").to_return(:status => 200, :body => @json.to_json.to_s, :headers => {})
 
       @key = alice.encryption_key
-      alice.stub!(:encryption_key).and_return(@key)
+      alice.stub(:encryption_key).and_return(@key)
+      @contact.stub(:user).and_return(alice)
 
       @nonce = SecureToken.generate(32)
       SecureToken.stub(:generate).and_return(@nonce)
-      @challenge = [alice.person.diaspora_handle,eve.person.diaspora_handle, @time.to_i, @nonce].join(";")
+      @challenge = [bob.person.diaspora_handle,alice.person.diaspora_handle, @time.to_i, @nonce].join(";")
 
     end
 
     after do
-      RestClient.stub!(:post).and_return(FakeHttpRequest.new(:success))
+      RestClient.stub(:post).and_return(FakeHttpRequest.new(:success))
     end
 
     it 'signs a challenge' do
@@ -254,18 +255,16 @@ describe Contact do
     end
 
     it 'POSTS a signed challenge' do
-      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+      @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
 
       @contact.receive_tokens_original
     end
 
     it 'stores authorization and refresh tokens' do
-      @key.stub!(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
+      @key.stub(:sign).with(OpenSSL::Digest::SHA256.new, @challenge).and_return("sig")
 
       @contact.receive_tokens_original
       
-      pp @contact.reload.access_token
-
       @contact.reload.access_token.token.should == @json[:access_token]
       @contact.reload.access_token.expires_at.to_i.should == (@time + 15.minutes).to_i
       @contact.reload.refresh_token.token.should == @json[:refresh_token]
