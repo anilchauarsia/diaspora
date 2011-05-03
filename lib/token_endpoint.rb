@@ -16,30 +16,36 @@ class TokenEndpoint
       client = contact ? contact.client : nil 
       error(req, :invalid_client!) unless client
 
-      split = Base64.decode64(req.client_secret).split(';')
-      time = split[0]
-      nonce = split[1]
-      signature = split[2]
-      challenge = [sender_handle, recepient_handle, time, nonce].join(";")
-
-      (valid_time?(time) && valid_nonce?(client, nonce) && verify_signature(client, challenge, signature)) || error(req, :invalid_client!)
-
       case req.grant_type
-      when :authorization_code
-        code = AuthorizationCode.valid.find_by_token(req.code)
-        req.invalid_grant! if code.blank? || code.redirect_uri != req.redirect_uri
-        res.access_token = code.access_token.to_bearer_token(:with_refresh_token)
-      when :password
-        # NOTE: password is not hashed in this sample app. Don't do the same on your app.
-        account = Account.find_by_username_and_password(req.username, req.password) || req.invalid_grant!
-        res.access_token = account.access_tokens.create(:client => client).to_bearer_token(:with_refresh_token)
+      #when :authorization_code
+      #  code = AuthorizationCode.valid.find_by_token(req.code)
+      #  req.invalid_grant! if code.blank? || code.redirect_uri != req.redirect_uri
+      #  res.access_token = code.access_token.to_bearer_token(:with_refresh_token)
+      #when :password
+      #  # NOTE: password is not hashed in this sample app. Don't do the same on your app.
+      #  account = Account.find_by_username_and_password(req.username, req.password) || req.invalid_grant!
+      #  res.access_token = account.access_tokens.create(:client => client).to_bearer_token(:with_refresh_token)
       when :client_credentials
         # NOTE: client is already authenticated here.
+
+        split = Base64.decode64(req.client_secret).split(';')
+        time = split[0]
+        nonce = split[1]
+        signature = split[2]
+        challenge = [sender_handle, recepient_handle, time, nonce].join(";")
+
+        (valid_time?(time) && valid_nonce?(client, nonce) && verify_signature(client, challenge, signature)) || error(req, :invalid_client!)
+
         res.access_token = client.access_tokens.create(:nonce => nonce).to_bearer_token(:with_refresh_token)
+
       when :refresh_token
         refresh_token = client.refresh_tokens.valid.find_by_token(req.refresh_token)
         req.invalid_grant! unless refresh_token
-        res.access_token = refresh_token.access_tokens.create.to_bearer_token
+
+        access_token = refresh_token.access_tokens.create
+        access_token.save
+
+        res.access_token = access_token.to_bearer_token
       else
         # NOTE: extended assertion grant_types are not supported yet.
         req.unsupported_grant_type!
