@@ -3,7 +3,7 @@ module HelperMethods
     connect_users(u1, u1.aspects.first, u2, u2.aspects.first)
   end
   def connect_users(user1, aspect1, user2, aspect2)
-    user1.contacts.create!(:person => user2.person,
+    c1 = user1.contacts.create!(:person => user2.person,
                            :aspects => [aspect1],
                            :sharing => true,
                            :receiving => true)

@@ -1,9 +1,6 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
-#   licensed under the Affero General Public License version 3 or later.  See
-#   the COPYRIGHT file.
+require 'rubygems'
+require 'spork'
 
-# This file is copied to ~/spec when you run 'ruby script/generate rspec'
-# from the project root directory.
 ENV["RAILS_ENV"] ||= 'test'
 require File.join(File.dirname(__FILE__), '..', 'config', 'environment') unless defined?(Rails)
 require 'helper_methods'
@@ -81,3 +78,11 @@ end
 def remote_raphael
   @remote_raphael ||= Person.where(:diaspora_handle => 'raphael@remote.net').first
 end
+
+#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   licensed under the Affero General Public License version 3 or later.  See
+#   the COPYRIGHT file.
+
+# This file is copied to ~/spec when you run 'ruby script/generate rspec'
+# from the project root directory.
+
