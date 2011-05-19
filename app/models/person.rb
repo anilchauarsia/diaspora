@@ -219,8 +219,8 @@ class Person < ActiveRecord::Base
   end
 
   def can_fetch
-    return true unless self.fetched_at
-    Time.now.to_i - self.fetched_at.to_i > 10.minutes
+    return true# unless self.fetched_at
+    #Time.now.to_i - self.fetched_at.to_i > 10.minutes
   end
 
   protected
