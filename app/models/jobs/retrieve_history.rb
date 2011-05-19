@@ -39,14 +39,19 @@ module Job
     end
 
     def self.get_data(api_route, request_hash, user, person)
-      RestClient.get(api_route, request_hash) do |body, req, res|
-        return unless res.code.to_i >= 200 && res.code.to_i < 400
-        pp body
-        [*Diaspora::Parser.from_xml(body)].map do |obj|
-          obj.receive(user, person)
-          obj.socket_to_user(user)
+      begin
+        RestClient.get(api_route, request_hash) do |body, req, res|
+          pp res.code
+          return unless res.code.to_i >= 200 && res.code.to_i < 400
+          pp body
+          [*Diaspora::Parser.from_xml(body)].map do |obj|
+            obj.receive(user, person)
+            obj.socket_to_user(user)
+          end
+          yield
         end
-        yield
+      rescue
+        pp "there was an exception in getting the data: " + e.inspect
       end
     end
   end
