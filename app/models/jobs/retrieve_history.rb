@@ -18,16 +18,19 @@ module Job
                                               :format => :xml}}
       if contact 
         if contact.access_token.nil? || contact.access_token.expired?
+          pp "Receiving Tokens for a contact from the job"
           contact.receive_tokens
         end
         request_hash[:params][:oauth_token] = contact.access_token.token
 
+        pp "About to fetch posts for a contact from the job"
         get_data(api_route, request_hash, user, person) do
           contact.fetched_at = Time.now
           contact.save!
         end
 
       else
+        pp "About to fetch posts for a person from the job"
         get_data(api_route, request_hash, user, person) do
           person.fetched_at = Time.now
           person.save!
