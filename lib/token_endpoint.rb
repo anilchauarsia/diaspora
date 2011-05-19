@@ -14,6 +14,8 @@ class TokenEndpoint
       recepient_handle = split[1]
       contact = Contact.joins(:user).joins(:person).where(:users => {:username => username}, :people => {:diaspora_handle => recepient_handle}).first
       client = contact ? contact.client : nil 
+      pp "Here is a Client: "
+      pp client
       error(req, :invalid_client!) unless client
 
       case req.grant_type
@@ -75,6 +77,4 @@ class TokenEndpoint
     req.env["warden"].custom_failure!
     req.send(error)
   end
-
-
 end

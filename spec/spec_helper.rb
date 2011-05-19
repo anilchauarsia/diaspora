@@ -1,5 +1,4 @@
 require 'rubygems'
-require 'spork'
 
 ENV["RAILS_ENV"] ||= 'test'
 require File.join(File.dirname(__FILE__), '..', 'config', 'environment') unless defined?(Rails)
