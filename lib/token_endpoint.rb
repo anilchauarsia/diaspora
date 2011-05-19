@@ -33,8 +33,14 @@ class TokenEndpoint
         nonce = split[1]
         signature = split[2]
         challenge = [sender_handle, recepient_handle, time, nonce].join(";")
-
-        (valid_time?(time) && valid_nonce?(client, nonce) && verify_signature(client, challenge, signature)) || error(req, :invalid_client!)
+        
+        v_time = valid_time?(time)
+        pp "Time Valid?: #{v_time}"
+        v_nonce = valid_nonce?(client, nonce) 
+        pp "Nonce Valid? #{v_nonce}"
+        v_sig = verify_signature(client, challenge, signature)
+        pp "Signature Valid? #{v_sig}"
+        ( v_time && v_nonce && v_sig) || error(req, :invalid_client!)
 
         res.access_token = client.access_tokens.create(:nonce => nonce).to_bearer_token(:with_refresh_token)
 

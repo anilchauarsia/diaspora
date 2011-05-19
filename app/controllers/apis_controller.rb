@@ -22,8 +22,8 @@ class ApisController < ApplicationController #We should start with this versione
     
     if person 
       if @current_token
-        user = @current_token.client.contact.user
-        contact_id = user.contact_for(person).id
+        contact = @current_token.client.contact
+        contact_id = contact.id 
 
         timeline = Post.joins(:post_visibilities).where(:post_visibilities => {:contact_id => contact_id}).all
       else
